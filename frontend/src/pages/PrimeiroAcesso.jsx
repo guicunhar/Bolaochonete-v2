@@ -2,12 +2,57 @@ import { useState } from 'react';
 import { useNavigate, useSearchParams, Link } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 
-const TEAMS = ['Argentina','Alemanha','Arábia Saudita','Austrália','Bélgica','Bielorrússia',
-  'Brasil','Camarões','Canadá','Chile','China','Colômbia','Coreia do Sul','Costa Rica','Croácia',
-  'Dinamarca','Egito','Equador','Espanha','Eslováquia','Estados Unidos','França','Geórgia',
-  'Honduras','Inglaterra','Irã','Itália','Japão','Marrocos','México','Nigéria','Nova Zelândia',
-  'Países Baixos','Panamá','Peru','Polônia','Portugal','Rep. Tcheca','Senegal','Suíça',
-  'Tailândia','Tanzânia','Tunísia','Turquia','Uruguai','Venezuela'];
+const TEAMS = [
+  'Estados Unidos',
+  'México',
+  'Canadá',
+  'Espanha',
+  'Argentina',
+  'França',
+  'Inglaterra',
+  'Brasil',
+  'Portugal',
+  'Países Baixos',
+  'Bélgica',
+  'Alemanha',
+  'Croácia',
+  'Marrocos',
+  'Colômbia',
+  'Uruguai',
+  'Suíça',
+  'Japão',
+  'Senegal',
+  'Irã',
+  'Coreia do Sul',
+  'Equador',
+  'Áustria',
+  'Austrália',
+  'Noruega',
+  'Panamá',
+  'Egito',
+  'Argélia',
+  'Escócia',
+  'Paraguai',
+  'Tunísia',
+  'Costa do Marfim',
+  'Uzbequistão',
+  'Catar',
+  'Arábia Saudita',
+  'África do Sul',
+  'Jordânia',
+  'Cabo Verde',
+  'Gana',
+  'Curaçau',
+  'Haiti',
+  'Nova Zelândia',
+  'Bósnia e Herzegovina',
+  'Suécia',
+  'Turquia',
+  'Tchéquia',
+  'RD Congo',
+  'Iraque'
+];
+
 
 export default function PrimeiroAcesso() {
   const [params] = useSearchParams();

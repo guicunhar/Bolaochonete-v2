@@ -9,8 +9,6 @@
 5. **Environment Variable:** `JWT_SECRET` = qualquer string longa
 6. **Node Version:** adicione variavel `NODE_VERSION = 20`
 
-## Admin
-- Login: `admin` / `admin2026`
 
 ## Fluxo de cadastro
 1. Admin adiciona participante no painel (nome + login)
