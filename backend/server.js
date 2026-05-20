@@ -41,7 +41,7 @@ function auth(req, res, next) {
   const token = req.headers.authorization?.split(' ')[1];
   if (!token) return res.status(401).json({ error: 'Token requerido' });
   try { req.user = jwt.verify(token, JWT_SECRET); next(); }
-  catch { res.status(401).json({ error: 'Token invalido' }); }
+  catch { res.status(401).json({ error: 'Token inválido' }); }
 }
 function adminOnly(req, res, next) {
   if (!req.user?.is_admin) return res.status(403).json({ error: 'Acesso negado' });
@@ -54,9 +54,9 @@ function adminOnly(req, res, next) {
 app.post('/api/first-login', (req, res) => {
   const { username, password, champion_pick, best_player_pick, top_scorer_pick } = req.body;
   const user = db.prepare('SELECT * FROM users WHERE username = ?').get(username?.toLowerCase());
-  if (!user) return res.status(404).json({ error: 'Usuario nao encontrado. Contate o admin.' });
-  if (!user.is_precadastro) return res.status(400).json({ error: 'Conta ja ativada. Use o login normal.' });
-  if (!password || password.length < 4) return res.status(400).json({ error: 'Senha minima de 4 caracteres' });
+  if (!user) return res.status(404).json({ error: 'Usuário não encontrado. Contate o admin.' });
+  if (!user.is_precadastro) return res.status(400).json({ error: 'Conta já ativada. Use o login normal.' });
+  if (!password || password.length < 4) return res.status(400).json({ error: 'Senha mínima de 4 caracteres' });
 
   const hash = bcrypt.hashSync(password, 10);
   db.prepare(`UPDATE users SET password_hash=?, is_precadastro=0, champion_pick=?, best_player_pick=?, top_scorer_pick=?, bonus_locked=1 WHERE id=?`)
@@ -99,7 +99,7 @@ app.get('/api/bets/mine', auth, (req, res) => {
 app.post('/api/bets', auth, (req, res) => {
   const { game_id, home_score, away_score, is_anonymous } = req.body;
   const game = db.prepare('SELECT * FROM games WHERE id = ?').get(game_id);
-  if (!game) return res.status(404).json({ error: 'Jogo nao encontrado' });
+  if (!game) return res.status(404).json({ error: 'Jogo não encontrado' });
   const matchStart = new Date(`${game.match_date}T${game.match_time}:00-03:00`);
   if (new Date() >= matchStart) return res.status(400).json({ error: 'Prazo encerrado' });
   db.prepare(`
@@ -198,15 +198,15 @@ app.get('/api/admin/users', auth, adminOnly, (req, res) => {
 
 app.post('/api/admin/users', auth, adminOnly, (req, res) => {
   const { name, username } = req.body;
-  if (!name||!username) return res.status(400).json({ error: 'Nome e usuario obrigatorios' });
+  if (!name||!username) return res.status(400).json({ error: 'Nome e usuário obrigatórios' });
   const exists = db.prepare('SELECT id FROM users WHERE username=?').get(username.toLowerCase());
-  if (exists) return res.status(409).json({ error: 'Usuario ja existe' });
+  if (exists) return res.status(409).json({ error: 'Usuário já existe' });
   const r = db.prepare('INSERT INTO users (name,username,is_precadastro) VALUES (?,?,1)').run(name, username.toLowerCase());
   res.json({ id: r.lastInsertRowid });
 });
 
 app.delete('/api/admin/users/:id', auth, adminOnly, (req, res) => {
-  if (req.params.id == req.user.id) return res.status(400).json({ error: 'Nao pode deletar a si mesmo' });
+  if (req.params.id == req.user.id) return res.status(400).json({ error: 'Não pode deletar a si mesmo' });
   db.prepare('DELETE FROM bets WHERE user_id=?').run(req.params.id);
   db.prepare('DELETE FROM users WHERE id=?').run(req.params.id);
   res.json({ ok: true });

@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import Avatar from '../components/Avatar';
 
-const PHASES = ['Grupos','Pre-Oitavas','Oitavas','Quartas','Semi','Terceiro Lugar','Final'];
+const PHASES = ['Grupos','Pré-Oitavas','Oitavas','Quartas','Semi','Terceiro Lugar','Final'];
 
 export default function Admin() {
   const { api, token } = useAuth();
@@ -68,7 +68,7 @@ export default function Admin() {
   };
 
   const deleteUser = async id => {
-    if (!confirm('Deletar usuario e todos seus palpites?')) return;
+    if (!confirm('Deletar usuário e todos seus palpites?')) return;
     await api(`/api/admin/users/${id}`, { method:'DELETE' });
     await loadUsers();
   };
@@ -104,7 +104,7 @@ export default function Admin() {
       {tab === 'jogos' && (
         <>
           <div className="tabs">
-            {PHASES.map(p => <button key={p} className={`tab${phase===p?' active':''}`} onClick={() => setPhase(p)}>{p}</button>)}
+            {PHASES.map((p, i) => <button key={p} className={`tab${phase===PHASE_KEYS[i]?' active':''}`} onClick={() => setPhase(PHASE_KEYS[i])}>{p}</button>)}
           </div>
           <div style={{ display:'flex', justifyContent:'flex-end', marginBottom:'10px' }}>
             <button className="btn btn-lime btn-sm" onClick={addGame}>+ Novo jogo</button>
@@ -119,7 +119,7 @@ export default function Admin() {
                   <th>Data</th><th>Hora</th>
                   <th style={{ background:'rgba(200,240,62,0.08)' }}>Gols Casa</th>
                   <th style={{ background:'rgba(200,240,62,0.08)' }}>Gols Fora</th>
-                  <th>Acoes</th>
+                  <th>Ações</th>
                 </tr>
               </thead>
               <tbody>
@@ -163,7 +163,7 @@ export default function Admin() {
             </div>
           )}
           <div style={{ marginTop:'14px', padding:'12px 14px', background:'rgba(200,240,62,0.04)', border:'1px solid rgba(200,240,62,0.1)', borderRadius:'var(--radius-sm)', fontSize:'0.75rem', color:'var(--muted)' }}>
-            <strong style={{ color:'var(--lime)' }}>Flags:</strong> use codigos ISO 3166-1 em maiusculo. Ex: BR, AR, FR, DE, ES, PT, IT, GB-ENG, NL, BE, HR, CH, JP, MX, US, CA, SN, MA, UY, CO, CL, AU, PE, NG, EC, KR, PL, CZ, HN, SK, TH, TR, CN, IR, TN, GE, PA, UY, EG, NZ, BY, KG, CM, TZ, TH, AF, CR, VE, UY, SA
+            <strong style={{ color:'var(--lime)' }}>Flags:</strong> use códigos ISO 3166-1 em maiúsculo. Ex: BR, AR, FR, DE, ES, PT, IT, GB-ENG, NL, BE, HR, CH, JP, MX, US, CA, SN, MA, UY, CO, CL, AU, PE, NG, EC, KR, PL, CZ, HN, SK, TH, TR, CN, IR, TN, GE, PA, UY, EG, NZ, BY, KG, CM, TZ, TH, AF, CR, VE, UY, SA
           </div>
         </>
       )}
@@ -213,7 +213,7 @@ export default function Admin() {
                   <div style={{ fontSize:'0.75rem', color:'var(--muted)', marginTop:'2px' }}>
                     @{u.username} •{' '}
                     {u.is_precadastro
-                      ? <span style={{ color:'var(--yellow)' }}>Aguardando primeiro acesso</span>
+                      ? <span style={{ color:'var(--yellow)' }}>Aguardando ativação</span>
                       : <span style={{ color:'var(--green)' }}>Ativo</span>}
                   </div>
                   {!u.is_precadastro && (

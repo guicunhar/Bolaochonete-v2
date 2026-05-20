@@ -16,13 +16,13 @@ export default function Classificacao() {
   return (
     <div className="fade-up">
       <div className="section-header">
-        <h1 className="section-title">Classificacao</h1>
+        <h1 className="section-title">Classificação</h1>
         <span style={{ fontSize:'0.8rem', color:'var(--muted)' }}>{ranking.length} participantes</span>
       </div>
 
       {ranking.length === 0 ? (
         <div className="card" style={{ textAlign:'center', padding:'48px' }}>
-          <p style={{ color:'var(--muted)' }}>Nenhum jogo finalizado ainda. A Copa comeca em 11/06!</p>
+          <p style={{ color:'var(--muted)' }}>Nenhum jogo finalizado ainda. A Copa começa em 11/06!</p>
         </div>
       ) : (
         <div className="card" style={{ padding:0, overflow:'hidden' }}>
@@ -33,7 +33,7 @@ export default function Classificacao() {
                 <th>Participante</th>
                 <th style={{ textAlign:'center' }}>Exatos</th>
                 <th style={{ textAlign:'center' }}>Parcial 3</th>
-                <th style={{ textAlign:'center' }}>Basico</th>
+                <th style={{ textAlign:'center' }}>Básico</th>
                 <th>Pontos</th>
               </tr>
             </thead>
@@ -47,7 +47,7 @@ export default function Classificacao() {
                       <div>
                         <div style={{ fontWeight:600, fontSize:'0.9rem' }}>
                           {p.name}
-                          {p.id===user?.id && <span style={{ color:'var(--lime)', fontSize:'0.7rem', marginLeft:'6px', fontWeight:400 }}>(voce)</span>}
+                          {p.id===user?.id && <span style={{ color:'var(--lime)', fontSize:'0.7rem', marginLeft:'6px', fontWeight:400 }}>(você)</span>}
                         </div>
                         {p.champion_pick && <div style={{ fontSize:'0.7rem', color:'var(--muted)', marginTop:'1px' }}>{p.champion_pick}</div>}
                       </div>
@@ -66,8 +66,8 @@ export default function Classificacao() {
 
       {ranking.length > 0 && (
         <div style={{ marginTop:'32px' }}>
-          <h2 style={{ fontFamily:'Syne', fontSize:'1.1rem', fontWeight:700, marginBottom:'14px', color:'var(--muted)' }}>
-            PALPITES BONUS
+          <h2 style={{ fontFamily:'Outfit', fontSize:'1rem', fontWeight:700, marginBottom:'14px', color:'var(--muted)', textTransform:'uppercase', letterSpacing:'0.06em' }}>
+            Palpites Bônus
           </h2>
           <div style={{ display:'grid', gridTemplateColumns:'repeat(auto-fill,minmax(240px,1fr))', gap:'10px' }}>
             {ranking.map(p => (
@@ -76,7 +76,7 @@ export default function Classificacao() {
                 <div style={{ minWidth:0 }}>
                   <div style={{ fontWeight:600, fontSize:'0.85rem', marginBottom:'6px' }}>{p.name}</div>
                   <div style={{ fontSize:'0.75rem', color:'var(--muted)', display:'flex', flexDirection:'column', gap:'3px' }}>
-                    {p.champion_pick && <span>Campea: <strong style={{ color:'var(--white)' }}>{p.champion_pick}</strong></span>}
+                    {p.champion_pick && <span>Campeã: <strong style={{ color:'var(--white)' }}>{p.champion_pick}</strong></span>}
                     {p.best_player_pick && <span>Melhor: <strong style={{ color:'var(--white)' }}>{p.best_player_pick}</strong></span>}
                     {p.top_scorer_pick && <span>Artilheiro: <strong style={{ color:'var(--white)' }}>{p.top_scorer_pick}</strong></span>}
                   </div>

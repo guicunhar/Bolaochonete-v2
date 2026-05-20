@@ -34,8 +34,8 @@ export default function Login() {
     <div style={{ minHeight:'100vh', display:'flex', alignItems:'center', justifyContent:'center', padding:'20px', background:'var(--black)' }}>
       <div style={{ width:'100%', maxWidth:'380px' }}>
         <div style={{ textAlign:'center', marginBottom:'36px' }}>
-          <div style={{ fontSize:'2.5rem', fontFamily:'Syne', fontWeight:800, letterSpacing:'-0.03em' }}>
-            BOLAO<span style={{ color:'var(--lime)' }}>CHONETE</span>
+          <div style={{ fontSize:'2.5rem', fontFamily:'Outfit', fontWeight:800, letterSpacing:'-0.03em' }}>
+            BOLÃO<span style={{ color:'var(--lime)' }}>CHONETE</span>
           </div>
           <p style={{ color:'var(--muted)', marginTop:'6px', fontSize:'0.875rem' }}>Copa do Mundo 2026</p>
         </div>
@@ -45,7 +45,7 @@ export default function Login() {
           {error && <div className="alert alert-error">{error}</div>}
           <form onSubmit={handleSubmit}>
             <div className="form-group">
-              <label className="label">Usuario</label>
+              <label className="label">Usuário</label>
               <input className="input" value={username} onChange={e => setUsername(e.target.value)} placeholder="seu.usuario" required />
             </div>
             <div className="form-group">

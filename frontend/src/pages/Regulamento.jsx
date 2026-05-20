@@ -14,35 +14,35 @@ export default function Regulamento() {
       <h1 className="section-title" style={{ marginBottom:'24px' }}>Regulamento</h1>
 
       <div className="card" style={{ marginBottom:'14px' }}>
-        <h2 style={{ fontSize:'1rem', marginBottom:'10px' }}>Pontuacao por jogo</h2>
+        <h2 style={{ fontSize:'1rem', marginBottom:'10px' }}>Pontuação por jogo</h2>
         <div style={{ display:'flex', flexDirection:'column', gap:'8px' }}>
           <Block pts="+5 pts" cls="badge-exact" label="Acerto Total" desc="Acertou o placar exato. Ex: palpitou 2x1 e deu 2x1." />
           <Block pts="+3 pts" cls="badge-p3" label="Acerto Parcial" desc="Acertou o vencedor E os gols de um dos times. Ex: palpitou 2x0 e deu 2x1 — acertou o vencedor e os gols do mandante (2)." />
-          <Block pts="+1 pt" cls="badge-p1" label="Acerto Basico" desc="Acertou apenas quem ganhou (ou que seria empate), mas errou os gols." />
+          <Block pts="+1 pt" cls="badge-p1" label="Acerto Básico" desc="Acertou apenas quem ganhou (ou que seria empate), mas errou os gols." />
           <Block pts="0 pts" cls="badge-miss" label="Errou" desc="Acertou o vencedor errado." />
         </div>
       </div>
 
       <div className="card" style={{ marginBottom:'14px' }}>
-        <h2 style={{ fontSize:'1rem', marginBottom:'10px' }}>Palpites Bonus (feitos na ativacao)</h2>
+        <h2 style={{ fontSize:'1rem', marginBottom:'10px' }}>Palpites Bônus (feitos na ativação)</h2>
         <div style={{ display:'flex', flexDirection:'column', gap:'8px' }}>
-          <Block pts="+50" cls="badge-exact" label="Selecao Campea" desc="Acertou o campeao do mundo." />
-          <Block pts="+25" cls="badge-p3" label="Vice-campea" desc="Palpitou no campeao, mas a selecao foi ate a final e perdeu." />
+          <Block pts="+50" cls="badge-exact" label="Seleção Campeã" desc="Acertou o campeão do mundo." />
+          <Block pts="+25" cls="badge-p3" label="Vice-campeã" desc="Palpitou no campeão, mas a seleção foi até a final e perdeu." />
           <Block pts="+25" cls="badge-exact" label="Melhor Jogador" desc="Acertou o Bola de Ouro da Copa (escolha da FIFA)." />
           <Block pts="+20" cls="badge-exact" label="Artilheiro" desc="Acertou o artilheiro exato do torneio." />
-          <Block pts="+10" cls="badge-p3" label="Artilheiro (desempate)" desc="O jogador marcou mais gols mas perdeu no criterio de desempate da FIFA." />
+          <Block pts="+10" cls="badge-p3" label="Artilheiro (desempate)" desc="O jogador marcou mais gols mas perdeu no critério de desempate da FIFA." />
         </div>
       </div>
 
       <div className="card" style={{ marginBottom:'14px' }}>
         <h2 style={{ fontSize:'1rem', marginBottom:'10px' }}>Prazos e regras</h2>
         <ul style={{ color:'var(--muted)', lineHeight:1.9, paddingLeft:'18px', fontSize:'0.85rem' }}>
-          <li>Palpites bloqueados automaticamente no horario de inicio de cada partida.</li>
-          <li>Horarios no fuso de Brasilia (GMT-3).</li>
-          <li>Palpite nao enviado = 0 pontos na partida.</li>
-          <li>Palpites bonus sao definitivos e nao podem ser alterados apos a ativacao da conta.</li>
-          <li>Se nao marcar "anonimo", seu palpite aparece publico antes do jogo comecar.</li>
-          <li>Palpites anonimos so ficam visiveis apos o apito inicial.</li>
+          <li>Palpites bloqueados automaticamente no horário de início de cada partida.</li>
+          <li>Horários no fuso de Brasília (GMT-3).</li>
+          <li>Palpite não enviado = 0 pontos na partida.</li>
+          <li>Palpites bônus são definitivos e não podem ser alterados após a ativação da conta.</li>
+          <li>Se não marcar "anônimo", seu palpite aparece público antes do jogo começar.</li>
+          <li>Palpites anônimos só ficam visíveis após o apito inicial.</li>
           <li>Resultados inseridos manualmente pelo administrador.</li>
         </ul>
       </div>

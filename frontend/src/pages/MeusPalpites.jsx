@@ -2,7 +2,8 @@ import { useState, useEffect, useCallback } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import Flag from '../components/Flag';
 
-const PHASES = ['Grupos','Pre-Oitavas','Oitavas','Quartas','Semi','Terceiro Lugar','Final'];
+const PHASES = ['Grupos','Pré-Oitavas','Oitavas','Quartas','Semi','Terceiro Lugar','Final'];
+const PHASE_KEYS = ['Grupos','Pre-Oitavas','Oitavas','Quartas','Semi','Terceiro Lugar','Final'];
 
 function isLocked(game) {
   return new Date() >= new Date(`${game.match_date}T${game.match_time}:00-03:00`);
@@ -10,7 +11,7 @@ function isLocked(game) {
 function fmtDate(d) {
   const [y,m,day] = d.split('-');
   const months=['Jan','Fev','Mar','Abr','Mai','Jun','Jul','Ago','Set','Out','Nov','Dez'];
-  const days=['Dom','Seg','Ter','Qua','Qui','Sex','Sab'];
+  const days=['Dom','Seg','Ter','Qua','Qui','Sex','Sáb'];
   const dt = new Date(+y,+m-1,+day);
   return `${days[dt.getDay()]}, ${day} ${months[+m-1]}`;
 }
@@ -23,7 +24,7 @@ export default function MeusPalpites() {
   const [anon, setAnon] = useState({});
   const [saving, setSaving] = useState({});
   const [msgs, setMsgs] = useState({});
-  const [phase, setPhase] = useState('Grupos');
+  const [phaseIdx, setPhaseIdx] = useState(0);
   const [loading, setLoading] = useState(true);
 
   const load = useCallback(async () => {
@@ -67,6 +68,7 @@ export default function MeusPalpites() {
     }
   };
 
+  const phase = PHASE_KEYS[phaseIdx];
   const phaseGames = games.filter(g => g.phase === phase);
 
   if (loading) return <div className="spinner" />;
@@ -77,12 +79,12 @@ export default function MeusPalpites() {
         <h1 className="section-title">Meus Palpites</h1>
       </div>
       <p style={{ color:'var(--muted)', fontSize:'0.82rem', marginBottom:'20px' }}>
-        Palpites bloqueados automaticamente no horario de inicio. Se nao marcar "anonimo", seu palpite aparece publico antes do jogo.
+        Palpites bloqueados automaticamente no horário de início. Se não marcar "anônimo", seu palpite aparece público antes do jogo.
       </p>
 
       <div className="tabs">
-        {PHASES.map(p => (
-          <button key={p} className={`tab${phase===p?' active':''}`} onClick={() => setPhase(p)}>{p}</button>
+        {PHASES.map((p, i) => (
+          <button key={p} className={`tab${phaseIdx===i?' active':''}`} onClick={() => setPhaseIdx(i)}>{p}</button>
         ))}
       </div>
 
@@ -111,11 +113,11 @@ export default function MeusPalpites() {
         return (
           <div key={game.id} className={`match-card${locked?' locked':''}`}>
             <div className="match-meta">
-              <div style={{ display:'flex', gap:'8px', alignItems:'center' }}>
+              <div style={{ display:'flex', gap:'8px', alignItems:'center', flexWrap:'wrap' }}>
                 <span className={`badge-phase ph-${game.phase}`}>{game.phase}</span>
                 {game.group_name && <span>Grupo {game.group_name}</span>}
                 <span>•</span>
-                <span>{fmtDate(game.match_date)} - {game.match_time} (Brasilia)</span>
+                <span>{fmtDate(game.match_date)} — {game.match_time} (Brasília)</span>
               </div>
               <div style={{ display:'flex', gap:'6px', alignItems:'center' }}>
                 {badge}
@@ -135,9 +137,9 @@ export default function MeusPalpites() {
               <div style={{ display:'flex', alignItems:'center', gap:'8px', flexShrink:0 }}>
                 {locked ? (
                   <div className="match-score-display">
-                    <span>{sv ? sv.home : '-'}</span>
+                    <span>{sv ? sv.home : '–'}</span>
                     <span className="score-sep">x</span>
-                    <span>{sv ? sv.away : '-'}</span>
+                    <span>{sv ? sv.away : '–'}</span>
                   </div>
                 ) : (
                   <>
@@ -161,7 +163,7 @@ export default function MeusPalpites() {
                   <label className="check-row">
                     <input type="checkbox" checked={anon[game.id]||false}
                       onChange={e => setAnon(a => ({ ...a, [game.id]: e.target.checked }))} />
-                    Anonimo
+                    Anônimo
                   </label>
                 </div>
               )}
