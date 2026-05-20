@@ -101,9 +101,9 @@ export default function Palpites() {
                 {/* Casa */}
                 <div style={{ display:'flex', justifyContent:'flex-end', alignItems:'center', gap:'6px' }}>
                   <span style={{ fontSize:'0.82rem', fontWeight:600 }}>
-                    {game.home_team} -
+                    {game.home_team}
                   </span>
-                  <Flag code={game.home_flag} name={game.home_team} size={20} />
+                  <Flag code={game.home_flag} name={game.home_team}/>
                 </div>
 
                 {/* Centro */}
@@ -124,10 +124,10 @@ export default function Palpites() {
 
                 {/* Fora */}
                 <div style={{ display:'flex', justifyContent:'flex-start', alignItems:'center', gap:'6px' }}>
+                  <Flag code={game.away_flag} name={game.away_team}/>
                   <span style={{ fontSize:'0.82rem', fontWeight:600 }}>
-                    {game.away_team} -
+                    {game.away_team}
                   </span>
-                  <Flag code={game.away_flag} name={game.away_team} size={20} />
                 </div>
 
               </div>
