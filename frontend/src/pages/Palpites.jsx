@@ -3,8 +3,8 @@ import { useAuth } from '../contexts/AuthContext';
 import Avatar from '../components/Avatar';
 import Flag from '../components/Flag';
 
-const PHASES    = ['Grupos','Pré-Oitavas','Oitavas','Quartas','Semi','Terceiro Lugar','Final'];
-const PHASE_KEYS= ['Grupos','Pre-Oitavas','Oitavas','Quartas','Semi','Terceiro Lugar','Final'];
+const PHASES     = ['Grupos','Pré-Oitavas','Oitavas','Quartas','Semi','Terceiro Lugar','Final'];
+const PHASE_KEYS = ['Grupos','Pre-Oitavas','Oitavas','Quartas','Semi','Terceiro Lugar','Final'];
 
 function fmtDate(d) {
   const [y,m,day] = d.split('-');
@@ -37,19 +37,14 @@ export default function Palpites() {
       <div className="section-header">
         <h1 className="section-title">Palpites</h1>
       </div>
-
       <p style={{ color:'var(--muted)', fontSize:'0.82rem', marginBottom:'20px' }}>
         Palpites públicos aparecem antes do jogo. Anônimos só aparecem após o início.
       </p>
 
       <div className="tabs">
         {PHASES.map((p, i) => (
-          <button
-            key={p}
-            className={`tab${phaseIdx===i?' active':''}`}
-            onClick={() => { setPhaseIdx(i); setOpen(null); }}
-          >
-            {p}
+          <button key={p} className={`tab${phaseIdx===i?' active':''}`}
+            onClick={() => { setPhaseIdx(i); setOpen(null); }}>{p}
           </button>
         ))}
       </div>
@@ -63,119 +58,98 @@ export default function Palpites() {
           const anonCount = bets.length - visibleBets.length;
 
           return (
-            <div
-              key={game.id}
-              className="match-card"
-              style={{ cursor:'pointer' }}
-              onClick={() => setOpen(isOpen ? null : game.id)}
-            >
+            <div key={game.id} className="match-card" style={{ cursor:'pointer' }}
+              onClick={() => setOpen(isOpen ? null : game.id)}>
 
-              {/* META */}
+              {/* meta row */}
               <div className="match-meta">
-                <div style={{ display:'flex', gap:'8px', alignItems:'center', flexWrap:'wrap' }}>
+                <div style={{ display:'flex', gap:'6px', alignItems:'center', flexWrap:'wrap' }}>
                   <span className={`badge-phase ph-${game.phase}`}>{game.phase}</span>
                   {game.group_name && <span>Grupo {game.group_name}</span>}
                   <span>•</span>
                   <span>{fmtDate(game.match_date)} — {game.match_time}</span>
                 </div>
-
                 <div style={{ display:'flex', gap:'8px', alignItems:'center' }}>
                   {game.home_score !== null && (
                     <span style={{ color:'var(--lime)', fontWeight:700, fontSize:'0.78rem' }}>
                       {game.home_score} x {game.away_score}
                     </span>
                   )}
-                  <span style={{ fontSize:'0.7rem' }}>{isOpen ? '▲' : '▼'}</span>
+                  <span style={{ color:'var(--muted2)', fontSize:'0.7rem' }}>{isOpen ? '▲' : '▼'}</span>
                 </div>
               </div>
 
-              {/* MATCH BODY (igual MeusPalpites) */}
-              <div className="match-body">
-                <div className="team">
-                  <Flag code={game.home_flag} name={game.home_team} />
-                  <span className="team-name">{game.home_team}</span>
+              {/* teams row — mandante esquerda, VS centro, visitante direita */}
+              <div style={{
+                display:'grid',
+                gridTemplateColumns:'1fr auto 1fr',
+                alignItems:'center',
+                gap:'12px',
+                pointerEvents:'none',
+                padding:'4px 0'
+              }}>
+                {/* Mandante — alinha à direita */}
+                <div style={{ display:'flex', flexDirection:'column', alignItems:'flex-end', gap:'4px' }}>
+                  <Flag code={game.home_flag} name={game.home_team} size={38} />
+                  <span style={{ fontSize:'0.82rem', fontWeight:600, textAlign:'right', lineHeight:1.2 }}>
+                    {game.home_team}
+                  </span>
                 </div>
 
-                <div style={{ display:'flex', alignItems:'center', gap:'8px' }}>
-                  {game.home_score !== null ? (
-                    <div className="match-score-display">
-                      <span>{game.home_score}</span>
-                      <span className="score-sep">x</span>
-                      <span>{game.away_score}</span>
-                    </div>
-                  ) : (
-                    <span style={{ color:'var(--muted2)', fontWeight:700 }}>VS</span>
-                  )}
+                {/* Centro */}
+                <div style={{ display:'flex', flexDirection:'column', alignItems:'center', gap:'3px', minWidth:60 }}>
+                  <span style={{ fontFamily:'Outfit', fontSize:'1.15rem', fontWeight:800, color:'var(--muted2)' }}>VS</span>
+                  <span style={{ fontSize:'0.65rem', color:'var(--muted2)', textAlign:'center', lineHeight:1.3 }}>
+                    {visibleBets.length} palpite{visibleBets.length!==1?'s':''}
+                    {anonCount > 0 && <><br/>{anonCount} anôn.</>}
+                  </span>
                 </div>
 
-                <div className="team">
-                  <Flag code={game.away_flag} name={game.away_team} />
-                  <span className="team-name">{game.away_team}</span>
+                {/* Visitante — alinha à esquerda */}
+                <div style={{ display:'flex', flexDirection:'column', alignItems:'flex-start', gap:'4px' }}>
+                  <Flag code={game.away_flag} name={game.away_team} size={38} />
+                  <span style={{ fontSize:'0.82rem', fontWeight:600, textAlign:'left', lineHeight:1.2 }}>
+                    {game.away_team}
+                  </span>
                 </div>
               </div>
 
-              {/* LISTA DE PALPITES */}
+              {/* expanded palpites */}
               {isOpen && (
-                <div
-                  style={{
-                    marginTop:'14px',
-                    borderTop:'1px solid var(--border)',
-                    paddingTop:'14px'
-                  }}
-                  onClick={e=>e.stopPropagation()}
-                >
+                <div style={{ marginTop:'14px', borderTop:'1px solid var(--border)', paddingTop:'14px' }}
+                  onClick={e => e.stopPropagation()}>
                   {visibleBets.length === 0 ? (
                     <p style={{ color:'var(--muted)', fontSize:'0.82rem', textAlign:'center' }}>
                       {!started
-                        ? 'Nenhum palpite público ainda.'
-                        : 'Nenhum palpite registrado.'
-                      }
+                        ? 'Nenhum palpite público ainda. Palpites anônimos aparecem após o início.'
+                        : 'Nenhum palpite registrado.'}
                     </p>
                   ) : (
                     <div style={{ display:'flex', flexDirection:'column', gap:'6px' }}>
                       {visibleBets.map(bet => {
                         let badge = null;
-
                         if (game.home_score !== null) {
                           if (bet.points===5) badge = <span className="badge badge-exact">+5</span>;
                           else if (bet.points===3) badge = <span className="badge badge-p3">+3</span>;
                           else if (bet.points===1) badge = <span className="badge badge-p1">+1</span>;
                           else badge = <span className="badge badge-miss">0</span>;
                         }
-
                         return (
-                          <div
-                            key={bet.id}
-                            style={{
-                              display:'flex',
-                              alignItems:'center',
-                              justifyContent:'space-between',
-                              padding:'8px 10px',
-                              background:'var(--card2)',
-                              borderRadius:'var(--radius-sm)'
-                            }}
-                          >
-                            {/* Usuário */}
-                            <div style={{ display:'flex', alignItems:'center', gap:'8px' }}>
-                              <Avatar src={bet.avatar_path} name={bet.user_name} size={28} />
-                              <span style={{ fontWeight:600, fontSize:'0.85rem' }}>
-                                {bet.user_name}
-                              </span>
-                            </div>
-
-                            {/* Score + badge */}
-                            <div style={{ display:'flex', alignItems:'center', gap:'6px' }}>
-                              <span style={{
-                                fontFamily:'Outfit',
-                                fontSize:'1rem',
-                                fontWeight:800,
-                                color:'var(--lime)'
-                              }}>
-                                {bet.home_score} x {bet.away_score}
-                              </span>
-
-                              {badge}
-                            </div>
+                          <div key={bet.id} style={{
+                            display:'grid',
+                            gridTemplateColumns:'auto 1fr auto auto',
+                            alignItems:'center',
+                            gap:'8px',
+                            padding:'8px 12px',
+                            background:'var(--card2)',
+                            borderRadius:'var(--radius-sm)'
+                          }}>
+                            <Avatar src={bet.avatar_path} name={bet.user_name} size={28} />
+                            <span style={{ fontWeight:600, fontSize:'0.85rem' }}>{bet.user_name}</span>
+                            <span style={{ fontFamily:'Outfit', fontSize:'1rem', fontWeight:800, color:'var(--lime)', whiteSpace:'nowrap' }}>
+                              {bet.home_score} x {bet.away_score}
+                            </span>
+                            {badge || <span />}
                           </div>
                         );
                       })}
