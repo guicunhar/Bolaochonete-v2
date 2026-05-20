@@ -2,12 +2,13 @@ import { useState, useEffect } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import Avatar from '../components/Avatar';
 
-const PHASES = ['Grupos','Pré-Oitavas','Oitavas','Quartas','Semi','Terceiro Lugar','Final'];
+const PHASES     = ['Grupos','Pré-Oitavas','Oitavas','Quartas','Semi','Terceiro Lugar','Final'];
+const PHASE_KEYS = ['Grupos','Pre-Oitavas','Oitavas','Quartas','Semi','Terceiro Lugar','Final'];
 
 export default function Admin() {
   const { api, token } = useAuth();
   const [tab, setTab] = useState('jogos');
-  const [phase, setPhase] = useState('Grupos');
+  const [phaseIdx, setPhaseIdx] = useState(0);
   const [games, setGames] = useState([]);
   const [edits, setEdits] = useState({});
   const [saving, setSaving] = useState({});
@@ -24,6 +25,7 @@ export default function Admin() {
     for (const g of data) em[g.id] = { ...g, home_score: g.home_score ?? '', away_score: g.away_score ?? '' };
     setEdits(em);
   };
+
   const loadUsers = async () => setUsers(await api('/api/admin/users'));
 
   useEffect(() => {
@@ -41,14 +43,18 @@ export default function Admin() {
       await loadGames();
     } catch(e) {
       setMsgs(m => ({ ...m, [id]: { t:'err', text: e.message } }));
-    } finally { setSaving(s => ({ ...s, [id]: false })); }
+    } finally {
+      setSaving(s => ({ ...s, [id]: false }));
+    }
   };
 
   const deleteGame = async id => {
-    if (!confirm('Deletar jogo e palpites?')) return;
+    if (!confirm('Deletar jogo e palpites relacionados?')) return;
     await api(`/api/admin/games/${id}`, { method:'DELETE' });
     await loadGames();
   };
+
+  const phase = PHASE_KEYS[phaseIdx];
 
   const addGame = async () => {
     await api('/api/admin/games', { method:'POST', body: JSON.stringify({
@@ -90,33 +96,51 @@ export default function Admin() {
   };
 
   const phaseGames = games.filter(g => g.phase === phase);
+
   if (loading) return <div className="spinner" />;
 
   return (
     <div className="fade-up">
       <h1 className="section-title" style={{ marginBottom:'20px' }}>Admin</h1>
 
+      {/* Main tabs */}
       <div className="tabs">
         <button className={`tab${tab==='jogos'?' active':''}`} onClick={() => setTab('jogos')}>Jogos</button>
         <button className={`tab${tab==='users'?' active':''}`} onClick={() => setTab('users')}>Participantes</button>
       </div>
 
+      {/* ── JOGOS ─────────────────────────────────────── */}
       {tab === 'jogos' && (
-        <>
+        <div>
+          {/* Phase tabs */}
           <div className="tabs">
-            {PHASES.map((p, i) => <button key={p} className={`tab${phase===PHASE_KEYS[i]?' active':''}`} onClick={() => setPhase(PHASE_KEYS[i])}>{p}</button>)}
+            {PHASES.map((p, i) => (
+              <button
+                key={p}
+                className={`tab${phaseIdx===i?' active':''}`}
+                onClick={() => setPhaseIdx(i)}
+              >
+                {p}
+              </button>
+            ))}
           </div>
+
           <div style={{ display:'flex', justifyContent:'flex-end', marginBottom:'10px' }}>
             <button className="btn btn-lime btn-sm" onClick={addGame}>+ Novo jogo</button>
           </div>
+
           <div style={{ overflowX:'auto' }}>
             <table className="admin-table">
               <thead>
                 <tr>
-                  <th>#</th><th>Grp</th>
-                  <th>Time Casa</th><th>Flag</th>
-                  <th>Time Fora</th><th>Flag</th>
-                  <th>Data</th><th>Hora</th>
+                  <th>#</th>
+                  <th>Grp</th>
+                  <th>Time Casa</th>
+                  <th>Flag</th>
+                  <th>Time Fora</th>
+                  <th>Flag</th>
+                  <th>Data</th>
+                  <th>Hora</th>
                   <th style={{ background:'rgba(200,240,62,0.08)' }}>Gols Casa</th>
                   <th style={{ background:'rgba(200,240,62,0.08)' }}>Gols Fora</th>
                   <th>Ações</th>
@@ -128,19 +152,47 @@ export default function Admin() {
                   const m = msgs[game.id];
                   return (
                     <tr key={game.id}>
-                      <td><input className="admin-input" style={{ width:44 }} value={e.match_number||''} onChange={ev => setEdit(game.id,'match_number',ev.target.value)} /></td>
-                      <td><input className="admin-input" style={{ width:36 }} value={e.group_name||''} onChange={ev => setEdit(game.id,'group_name',ev.target.value)} placeholder="A" /></td>
-                      <td><input className="admin-input" style={{ width:110 }} value={e.home_team||''} onChange={ev => setEdit(game.id,'home_team',ev.target.value)} /></td>
-                      <td><input className="admin-input" style={{ width:50 }} value={e.home_flag||''} onChange={ev => setEdit(game.id,'home_flag',ev.target.value)} placeholder="BR" /></td>
-                      <td><input className="admin-input" style={{ width:110 }} value={e.away_team||''} onChange={ev => setEdit(game.id,'away_team',ev.target.value)} /></td>
-                      <td><input className="admin-input" style={{ width:50 }} value={e.away_flag||''} onChange={ev => setEdit(game.id,'away_flag',ev.target.value)} placeholder="AR" /></td>
-                      <td><input className="admin-input" type="date" style={{ width:128 }} value={e.match_date||''} onChange={ev => setEdit(game.id,'match_date',ev.target.value)} /></td>
-                      <td><input className="admin-input" type="time" style={{ width:80 }} value={e.match_time||''} onChange={ev => setEdit(game.id,'match_time',ev.target.value)} /></td>
-                      <td style={{ background:'rgba(200,240,62,0.04)' }}>
-                        <input className="admin-input" type="number" min="0" style={{ width:52, textAlign:'center', fontWeight:700 }} value={e.home_score} onChange={ev => setEdit(game.id,'home_score',ev.target.value)} placeholder="-" />
+                      <td>
+                        <input className="admin-input" style={{ width:44 }}
+                          value={e.match_number||''} onChange={ev => setEdit(game.id,'match_number',ev.target.value)} />
+                      </td>
+                      <td>
+                        <input className="admin-input" style={{ width:36 }}
+                          value={e.group_name||''} onChange={ev => setEdit(game.id,'group_name',ev.target.value)} placeholder="A" />
+                      </td>
+                      <td>
+                        <input className="admin-input" style={{ width:110 }}
+                          value={e.home_team||''} onChange={ev => setEdit(game.id,'home_team',ev.target.value)} />
+                      </td>
+                      <td>
+                        <input className="admin-input" style={{ width:50 }}
+                          value={e.home_flag||''} onChange={ev => setEdit(game.id,'home_flag',ev.target.value)} placeholder="BR" />
+                      </td>
+                      <td>
+                        <input className="admin-input" style={{ width:110 }}
+                          value={e.away_team||''} onChange={ev => setEdit(game.id,'away_team',ev.target.value)} />
+                      </td>
+                      <td>
+                        <input className="admin-input" style={{ width:50 }}
+                          value={e.away_flag||''} onChange={ev => setEdit(game.id,'away_flag',ev.target.value)} placeholder="AR" />
+                      </td>
+                      <td>
+                        <input className="admin-input" type="date" style={{ width:128 }}
+                          value={e.match_date||''} onChange={ev => setEdit(game.id,'match_date',ev.target.value)} />
+                      </td>
+                      <td>
+                        <input className="admin-input" type="time" style={{ width:80 }}
+                          value={e.match_time||''} onChange={ev => setEdit(game.id,'match_time',ev.target.value)} />
                       </td>
                       <td style={{ background:'rgba(200,240,62,0.04)' }}>
-                        <input className="admin-input" type="number" min="0" style={{ width:52, textAlign:'center', fontWeight:700 }} value={e.away_score} onChange={ev => setEdit(game.id,'away_score',ev.target.value)} placeholder="-" />
+                        <input className="admin-input" type="number" min="0"
+                          style={{ width:52, textAlign:'center', fontWeight:700 }}
+                          value={e.home_score} onChange={ev => setEdit(game.id,'home_score',ev.target.value)} placeholder="-" />
+                      </td>
+                      <td style={{ background:'rgba(200,240,62,0.04)' }}>
+                        <input className="admin-input" type="number" min="0"
+                          style={{ width:52, textAlign:'center', fontWeight:700 }}
+                          value={e.away_score} onChange={ev => setEdit(game.id,'away_score',ev.target.value)} placeholder="-" />
                       </td>
                       <td>
                         <div style={{ display:'flex', gap:'4px', alignItems:'center' }}>
@@ -148,7 +200,11 @@ export default function Admin() {
                             {saving[game.id] ? '...' : 'Salvar'}
                           </button>
                           <button className="btn btn-danger btn-sm" onClick={() => deleteGame(game.id)}>Del</button>
-                          {m && <span style={{ fontSize:'0.7rem', color: m.t==='ok'?'var(--green)':'var(--red)' }}>{m.text}</span>}
+                          {m && (
+                            <span style={{ fontSize:'0.7rem', color: m.t==='ok' ? 'var(--green)' : 'var(--red)' }}>
+                              {m.text}
+                            </span>
+                          )}
                         </div>
                       </td>
                     </tr>
@@ -157,30 +213,38 @@ export default function Admin() {
               </tbody>
             </table>
           </div>
+
           {phaseGames.length === 0 && (
             <div className="card" style={{ textAlign:'center', padding:'32px', marginTop:'10px' }}>
               <p style={{ color:'var(--muted)' }}>Nenhum jogo nesta fase. Clique em "+ Novo jogo".</p>
             </div>
           )}
-          <div style={{ marginTop:'14px', padding:'12px 14px', background:'rgba(200,240,62,0.04)', border:'1px solid rgba(200,240,62,0.1)', borderRadius:'var(--radius-sm)', fontSize:'0.75rem', color:'var(--muted)' }}>
-            <strong style={{ color:'var(--lime)' }}>Flags:</strong> use códigos ISO 3166-1 em maiúsculo. Ex: BR, AR, FR, DE, ES, PT, IT, GB-ENG, NL, BE, HR, CH, JP, MX, US, CA, SN, MA, UY, CO, CL, AU, PE, NG, EC, KR, PL, CZ, HN, SK, TH, TR, CN, IR, TN, GE, PA, UY, EG, NZ, BY, KG, CM, TZ, TH, AF, CR, VE, UY, SA
+
+          <div style={{ marginTop:'14px', padding:'12px 14px', background:'rgba(200,240,62,0.04)', border:'1px solid rgba(200,240,62,0.1)', borderRadius:'var(--radius-sm)', fontSize:'0.75rem', color:'var(--muted)', lineHeight:1.7 }}>
+            <strong style={{ color:'var(--lime)' }}>Flags:</strong> use códigos ISO 3166-1 em maiúsculo.<br/>
+            Exemplos: BR, AR, FR, DE, ES, PT, IT, NL, BE, HR, CH, JP, MX, US, CA, SN, MA, UY, CO, CL, AU, PE, NG, EC, KR, PL, CZ, HN, SK, TH, TR, CN, IR, TN, GE, PA, EG, NZ, BY, KG, CM, TZ, AF, CR, VE, SA, PY, BO, RO, RS, UA, QA, CI
           </div>
-        </>
+        </div>
       )}
 
+      {/* ── PARTICIPANTES ──────────────────────────────── */}
       {tab === 'users' && (
-        <>
+        <div>
           {/* Add user */}
           <div className="card" style={{ marginBottom:'16px' }}>
             <h3 style={{ fontSize:'0.9rem', fontWeight:700, marginBottom:'12px' }}>Adicionar participante</h3>
             <div style={{ display:'flex', gap:'10px', flexWrap:'wrap', alignItems:'flex-end' }}>
               <div style={{ flex:1, minWidth:140 }}>
                 <label className="label">Nome</label>
-                <input className="input" value={newUser.name} onChange={e => setNewUser(u => ({ ...u, name: e.target.value }))} placeholder="Nome completo" />
+                <input className="input" value={newUser.name}
+                  onChange={e => setNewUser(u => ({ ...u, name: e.target.value }))}
+                  placeholder="Nome completo" />
               </div>
               <div style={{ flex:1, minWidth:120 }}>
-                <label className="label">Usuario (login)</label>
-                <input className="input" value={newUser.username} onChange={e => setNewUser(u => ({ ...u, username: e.target.value }))} placeholder="sem espacos" />
+                <label className="label">Usuário (login)</label>
+                <input className="input" value={newUser.username}
+                  onChange={e => setNewUser(u => ({ ...u, username: e.target.value }))}
+                  placeholder="sem espaços" />
               </div>
               <button className="btn btn-lime" onClick={createUser}>Adicionar</button>
             </div>
@@ -217,10 +281,10 @@ export default function Admin() {
                       : <span style={{ color:'var(--green)' }}>Ativo</span>}
                   </div>
                   {!u.is_precadastro && (
-                    <div style={{ fontSize:'0.7rem', color:'var(--muted)', marginTop:'4px', display:'flex', gap:'12px' }}>
-                      {u.champion_pick && <span>Campea: {u.champion_pick}</span>}
-                      {u.best_player_pick && <span>Melhor: {u.best_player_pick}</span>}
-                      {u.top_scorer_pick && <span>Artilheiro: {u.top_scorer_pick}</span>}
+                    <div style={{ fontSize:'0.7rem', color:'var(--muted)', marginTop:'4px', display:'flex', gap:'12px', flexWrap:'wrap' }}>
+                      {u.champion_pick && <span>Campeã: <strong style={{ color:'var(--white)' }}>{u.champion_pick}</strong></span>}
+                      {u.best_player_pick && <span>Melhor: <strong style={{ color:'var(--white)' }}>{u.best_player_pick}</strong></span>}
+                      {u.top_scorer_pick && <span>Artilheiro: <strong style={{ color:'var(--white)' }}>{u.top_scorer_pick}</strong></span>}
                     </div>
                   )}
                 </div>
@@ -229,7 +293,7 @@ export default function Admin() {
               </div>
             ))}
           </div>
-        </>
+        </div>
       )}
     </div>
   );
