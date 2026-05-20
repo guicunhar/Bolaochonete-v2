@@ -89,11 +89,11 @@ export default function Palpites() {
                 padding:'4px 0'
               }}>
                 {/* Mandante — alinha à direita */}
-                <div style={{ display:'flex', flexDirection:'column', alignItems:'flex-end', gap:'4px' }}>
-                  <Flag code={game.home_flag} name={game.home_team} size={38} />
-                  <span style={{ fontSize:'0.82rem', fontWeight:600, textAlign:'right', lineHeight:1.2 }}>
-                    {game.home_team}
+                <div style={{ display:'flex', alignItems:'center', justifyContent:'flex-end', gap:'6px' }}>
+                  <span style={{ fontSize:'0.82rem', fontWeight:600 }}>
+                    {game.home_team} -
                   </span>
+                  <Flag code={game.home_flag} name={game.home_team} size={20} />
                 </div>
 
                 {/* Centro */}
@@ -106,13 +106,13 @@ export default function Palpites() {
                 </div>
 
                 {/* Visitante — alinha à esquerda */}
-                <div style={{ display:'flex', flexDirection:'column', alignItems:'flex-start', gap:'4px' }}>
-                  <Flag code={game.away_flag} name={game.away_team} size={38} />
-                  <span style={{ fontSize:'0.82rem', fontWeight:600, textAlign:'left', lineHeight:1.2 }}>
-                    {game.away_team}
+                <div style={{ display:'flex', alignItems:'center', justifyContent:'flex-start', gap:'6px' }}>
+                  <span style={{ fontSize:'0.82rem', fontWeight:600 }}>
+                    {game.away_team} -
                   </span>
+                  <Flag code={game.away_flag} name={game.away_team} size={20} />
                 </div>
-              </div>
+
 
               {/* expanded palpites */}
               {isOpen && (
