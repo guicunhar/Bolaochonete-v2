@@ -37,13 +37,20 @@ export default function Palpites() {
       <div className="section-header">
         <h1 className="section-title">Palpites</h1>
       </div>
+
       <p style={{ color:'var(--muted)', fontSize:'0.82rem', marginBottom:'20px' }}>
         Palpites públicos aparecem antes do jogo. Anônimos só aparecem após o início.
       </p>
 
       <div className="tabs">
         {PHASES.map((p, i) => (
-          <button key={p} className={`tab${phaseIdx===i?' active':''}`} onClick={() => { setPhaseIdx(i); setOpen(null); }}>{p}</button>
+          <button
+            key={p}
+            className={`tab${phaseIdx===i?' active':''}`}
+            onClick={() => { setPhaseIdx(i); setOpen(null); }}
+          >
+            {p}
+          </button>
         ))}
       </div>
 
@@ -56,7 +63,14 @@ export default function Palpites() {
           const anonCount = bets.length - visibleBets.length;
 
           return (
-            <div key={game.id} className="match-card" style={{ cursor:'pointer' }} onClick={() => setOpen(isOpen ? null : game.id)}>
+            <div
+              key={game.id}
+              className="match-card"
+              style={{ cursor:'pointer' }}
+              onClick={() => setOpen(isOpen ? null : game.id)}
+            >
+
+              {/* META */}
               <div className="match-meta">
                 <div style={{ display:'flex', gap:'8px', alignItems:'center', flexWrap:'wrap' }}>
                   <span className={`badge-phase ph-${game.phase}`}>{game.phase}</span>
@@ -64,116 +78,104 @@ export default function Palpites() {
                   <span>•</span>
                   <span>{fmtDate(game.match_date)} — {game.match_time}</span>
                 </div>
+
                 <div style={{ display:'flex', gap:'8px', alignItems:'center' }}>
                   {game.home_score !== null && (
                     <span style={{ color:'var(--lime)', fontWeight:700, fontSize:'0.78rem' }}>
                       {game.home_score} x {game.away_score}
                     </span>
                   )}
-                  <span style={{ color:'var(--muted2)', fontSize:'0.7rem' }}>{isOpen ? '▲' : '▼'}</span>
+                  <span style={{ fontSize:'0.7rem' }}>{isOpen ? '▲' : '▼'}</span>
                 </div>
               </div>
 
-              {/* Match body — centered */}
-            <div className="match-body">
-              <div className="team">
-                <Flag code={game.home_flag} name={game.home_team} />
-                <span className="team-name">{game.home_team}</span>
-              </div>
-
-              <div style={{ display:'flex', alignItems:'center', gap:'8px', flexShrink:0 }}>
-                {game.home_score !== null ? (
-                  <div className="match-score-display">
-                    <span>{game.home_score}</span>
-                    <span className="score-sep">x</span>
-                    <span>{game.away_score}</span>
-                  </div>
-                ) : (
-                  <div style={{ color:'var(--muted2)', fontWeight:700 }}>
-                    VS
-                  </div>
-                )}
-              </div>
-
-              <div className="team">
-                <Flag code={game.away_flag} name={game.away_team} />
-                <span className="team-name">{game.away_team}</span>
-              </div>
-            </div>
-                <div className="team" style={{ alignItems:'flex-end', flex:'0 1 140px' }}>
-                  <Flag code={game.home_flag} name={game.home_team} size={40} />
-                  <span className="team-name" style={{ textAlign:'right' }}>{game.home_team}</span>
+              {/* MATCH BODY (igual MeusPalpites) */}
+              <div className="match-body">
+                <div className="team">
+                  <Flag code={game.home_flag} name={game.home_team} />
+                  <span className="team-name">{game.home_team}</span>
                 </div>
 
-                <div style={{ display:'flex', flexDirection:'column', alignItems:'center', gap:'4px', flexShrink:0 }}>
-                  <div style={{ fontFamily:'Outfit', fontSize:'1.2rem', fontWeight:800, color:'var(--muted2)', letterSpacing:'-0.02em' }}>VS</div>
-                  <div style={{ fontSize:'0.68rem', color:'var(--muted2)' }}>
-                    {visibleBets.length} palpite{visibleBets.length!==1?'s':''}
-                    {anonCount > 0 && ` + ${anonCount} anôn.`}
-                  </div>
+                <div style={{ display:'flex', alignItems:'center', gap:'8px' }}>
+                  {game.home_score !== null ? (
+                    <div className="match-score-display">
+                      <span>{game.home_score}</span>
+                      <span className="score-sep">x</span>
+                      <span>{game.away_score}</span>
+                    </div>
+                  ) : (
+                    <span style={{ color:'var(--muted2)', fontWeight:700 }}>VS</span>
+                  )}
                 </div>
 
-                <div className="team" style={{ alignItems:'flex-start', flex:'0 1 140px' }}>
-                  <Flag code={game.away_flag} name={game.away_team} size={40} />
-                  <span className="team-name" style={{ textAlign:'left' }}>{game.away_team}</span>
+                <div className="team">
+                  <Flag code={game.away_flag} name={game.away_team} />
+                  <span className="team-name">{game.away_team}</span>
                 </div>
               </div>
 
+              {/* LISTA DE PALPITES */}
               {isOpen && (
-                <div style={{ marginTop:'14px', borderTop:'1px solid var(--border)', paddingTop:'14px' }} onClick={e=>e.stopPropagation()}>
+                <div
+                  style={{
+                    marginTop:'14px',
+                    borderTop:'1px solid var(--border)',
+                    paddingTop:'14px'
+                  }}
+                  onClick={e=>e.stopPropagation()}
+                >
                   {visibleBets.length === 0 ? (
                     <p style={{ color:'var(--muted)', fontSize:'0.82rem', textAlign:'center' }}>
-                      {!started ? 'Nenhum palpite público ainda. Palpites anônimos aparecem após o início.' : 'Nenhum palpite registrado.'}
+                      {!started
+                        ? 'Nenhum palpite público ainda.'
+                        : 'Nenhum palpite registrado.'
+                      }
                     </p>
                   ) : (
                     <div style={{ display:'flex', flexDirection:'column', gap:'6px' }}>
                       {visibleBets.map(bet => {
                         let badge = null;
+
                         if (game.home_score !== null) {
                           if (bet.points===5) badge = <span className="badge badge-exact">+5</span>;
                           else if (bet.points===3) badge = <span className="badge badge-p3">+3</span>;
                           else if (bet.points===1) badge = <span className="badge badge-p1">+1</span>;
                           else badge = <span className="badge badge-miss">0</span>;
                         }
+
                         return (
-                          <div key={bet.id} style={{ display:'flex', alignItems:'center', gap:'10px', padding:'8px 10px', background:'var(--card2)', borderRadius:'var(--radius-sm)' }}>
-                            <Avatar src={bet.avatar_path} name={bet.user_name} size={28} />
-                            <span style={{ fontWeight:600, fontSize:'0.85rem', flex:1 }}>{bet.user_name}</span>
-                            <div
-                              key={bet.id}
-                              style={{
-                                display:'flex',
-                                alignItems:'center',
-                                justifyContent:'space-between',
-                                gap:'10px',
-                                padding:'8px 10px',
-                                background:'var(--card2)',
-                                borderRadius:'var(--radius-sm)'
-                              }}
-                            >
-                              <div style={{ display:'flex', alignItems:'center', gap:'8px' }}>
-                                <Avatar src={bet.avatar_path} name={bet.user_name} size={28} />
-
-                                <span style={{ fontWeight:600, fontSize:'0.85rem' }}>
-                                  {bet.user_name}
-                                </span>
-                              </div>
-
-                              <div style={{ display:'flex', alignItems:'center', gap:'6px' }}>
-                                <span style={{
-                                  fontFamily:'Outfit',
-                                  fontSize:'1rem',
-                                  fontWeight:800,
-                                  color:'var(--lime)'
-                                }}>
-                                  {bet.home_score} x {bet.away_score}
-                                </span>
-
-                                {badge}
-                              </div>
+                          <div
+                            key={bet.id}
+                            style={{
+                              display:'flex',
+                              alignItems:'center',
+                              justifyContent:'space-between',
+                              padding:'8px 10px',
+                              background:'var(--card2)',
+                              borderRadius:'var(--radius-sm)'
+                            }}
+                          >
+                            {/* Usuário */}
+                            <div style={{ display:'flex', alignItems:'center', gap:'8px' }}>
+                              <Avatar src={bet.avatar_path} name={bet.user_name} size={28} />
+                              <span style={{ fontWeight:600, fontSize:'0.85rem' }}>
+                                {bet.user_name}
+                              </span>
                             </div>
-                            </span>
-                            {badge}
+
+                            {/* Score + badge */}
+                            <div style={{ display:'flex', alignItems:'center', gap:'6px' }}>
+                              <span style={{
+                                fontFamily:'Outfit',
+                                fontSize:'1rem',
+                                fontWeight:800,
+                                color:'var(--lime)'
+                              }}>
+                                {bet.home_score} x {bet.away_score}
+                              </span>
+
+                              {badge}
+                            </div>
                           </div>
                         );
                       })}
