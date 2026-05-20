@@ -75,7 +75,31 @@ export default function Palpites() {
               </div>
 
               {/* Match body — centered */}
-              <div style={{ display:'flex', alignItems:'center', justifyContent:'center', gap:'20px', pointerEvents:'none' }}>
+            <div className="match-body">
+              <div className="team">
+                <Flag code={game.home_flag} name={game.home_team} />
+                <span className="team-name">{game.home_team}</span>
+              </div>
+
+              <div style={{ display:'flex', alignItems:'center', gap:'8px', flexShrink:0 }}>
+                {game.home_score !== null ? (
+                  <div className="match-score-display">
+                    <span>{game.home_score}</span>
+                    <span className="score-sep">x</span>
+                    <span>{game.away_score}</span>
+                  </div>
+                ) : (
+                  <div style={{ color:'var(--muted2)', fontWeight:700 }}>
+                    VS
+                  </div>
+                )}
+              </div>
+
+              <div className="team">
+                <Flag code={game.away_flag} name={game.away_team} />
+                <span className="team-name">{game.away_team}</span>
+              </div>
+            </div>
                 <div className="team" style={{ alignItems:'flex-end', flex:'0 1 140px' }}>
                   <Flag code={game.home_flag} name={game.home_team} size={40} />
                   <span className="team-name" style={{ textAlign:'right' }}>{game.home_team}</span>
@@ -115,8 +139,39 @@ export default function Palpites() {
                           <div key={bet.id} style={{ display:'flex', alignItems:'center', gap:'10px', padding:'8px 10px', background:'var(--card2)', borderRadius:'var(--radius-sm)' }}>
                             <Avatar src={bet.avatar_path} name={bet.user_name} size={28} />
                             <span style={{ fontWeight:600, fontSize:'0.85rem', flex:1 }}>{bet.user_name}</span>
-                            <span style={{ fontFamily:'Outfit', fontSize:'1rem', fontWeight:800, color:'var(--lime)' }}>
-                              {bet.home_score} x {bet.away_score}
+                            <div
+                              key={bet.id}
+                              style={{
+                                display:'flex',
+                                alignItems:'center',
+                                justifyContent:'space-between',
+                                gap:'10px',
+                                padding:'8px 10px',
+                                background:'var(--card2)',
+                                borderRadius:'var(--radius-sm)'
+                              }}
+                            >
+                              <div style={{ display:'flex', alignItems:'center', gap:'8px' }}>
+                                <Avatar src={bet.avatar_path} name={bet.user_name} size={28} />
+
+                                <span style={{ fontWeight:600, fontSize:'0.85rem' }}>
+                                  {bet.user_name}
+                                </span>
+                              </div>
+
+                              <div style={{ display:'flex', alignItems:'center', gap:'6px' }}>
+                                <span style={{
+                                  fontFamily:'Outfit',
+                                  fontSize:'1rem',
+                                  fontWeight:800,
+                                  color:'var(--lime)'
+                                }}>
+                                  {bet.home_score} x {bet.away_score}
+                                </span>
+
+                                {badge}
+                              </div>
+                            </div>
                             </span>
                             {badge}
                           </div>
