@@ -14,11 +14,14 @@ function initializeDatabase() {
       id INTEGER PRIMARY KEY AUTOINCREMENT,
       name TEXT NOT NULL,
       username TEXT UNIQUE NOT NULL,
-      password_hash TEXT NOT NULL,
+      password_hash TEXT,
       is_admin INTEGER DEFAULT 0,
+      is_precadastro INTEGER DEFAULT 1,
+      avatar_path TEXT,
       champion_pick TEXT,
       best_player_pick TEXT,
       top_scorer_pick TEXT,
+      bonus_locked INTEGER DEFAULT 0,
       created_at DATETIME DEFAULT CURRENT_TIMESTAMP
     );
 
@@ -33,10 +36,8 @@ function initializeDatabase() {
       away_flag TEXT NOT NULL,
       match_date TEXT NOT NULL,
       match_time TEXT NOT NULL,
-      venue TEXT,
       home_score INTEGER,
       away_score INTEGER,
-      status TEXT DEFAULT 'upcoming',
       created_at DATETIME DEFAULT CURRENT_TIMESTAMP
     );
 
@@ -46,6 +47,7 @@ function initializeDatabase() {
       game_id INTEGER NOT NULL,
       home_score INTEGER NOT NULL,
       away_score INTEGER NOT NULL,
+      is_anonymous INTEGER DEFAULT 0,
       points INTEGER DEFAULT 0,
       created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
       updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
@@ -55,141 +57,163 @@ function initializeDatabase() {
     );
   `);
 
-  // Create admin if not exists
+  // Create admin
   const admin = db.prepare('SELECT id FROM users WHERE username = ?').get('admin');
   if (!admin) {
     const hash = bcrypt.hashSync('admin2026', 10);
-    db.prepare(`INSERT INTO users (name, username, password_hash, is_admin) VALUES (?, ?, ?, 1)`)
+    db.prepare(`INSERT INTO users (name, username, password_hash, is_admin, is_precadastro, bonus_locked) VALUES (?, ?, ?, 1, 0, 1)`)
       .run('Administrador', 'admin', hash);
-    console.log('Admin created: admin / admin2026');
+    console.log('Admin: admin / admin2026');
   }
 
-  // Seed games if empty
   const gameCount = db.prepare('SELECT COUNT(*) as c FROM games').get();
   if (gameCount.c === 0) {
     seedGames();
-    console.log('Games seeded!');
+    console.log('Jogos criados!');
   }
 }
 
 function seedGames() {
-  const insert = db.prepare(`
-    INSERT INTO games (match_number, phase, group_name, home_team, home_flag, away_team, away_flag, match_date, match_time, venue)
-    VALUES (@match_number, @phase, @group_name, @home_team, @home_flag, @away_team, @away_flag, @match_date, @match_time, @venue)
+  const ins = db.prepare(`
+    INSERT INTO games (match_number, phase, group_name, home_team, home_flag, away_team, away_flag, match_date, match_time)
+    VALUES (@n, @phase, @g, @ht, @hf, @at, @af, @date, @time)
   `);
 
   const games = [
-    // Group A
-    { match_number: 1, phase: 'Grupos', group_name: 'A', home_team: 'México', home_flag: '🇲🇽', away_team: 'Estados Unidos', away_flag: '🇺🇸', match_date: '2026-06-11', match_time: '22:00', venue: 'Azteca, Cidade do México' },
-    { match_number: 2, phase: 'Grupos', group_name: 'A', home_team: 'Canadá', home_flag: '🇨🇦', away_team: 'Arábia Saudita', away_flag: '🇸🇦', match_date: '2026-06-12', match_time: '19:00', venue: 'Toronto' },
-    { match_number: 3, phase: 'Grupos', group_name: 'A', home_team: 'México', home_flag: '🇲🇽', away_team: 'Canadá', away_flag: '🇨🇦', match_date: '2026-06-16', match_time: '22:00', venue: 'Azteca, Cidade do México' },
-    { match_number: 4, phase: 'Grupos', group_name: 'A', home_team: 'Estados Unidos', home_flag: '🇺🇸', away_team: 'Arábia Saudita', away_flag: '🇸🇦', match_date: '2026-06-16', match_time: '19:00', venue: 'Los Angeles' },
-    { match_number: 5, phase: 'Grupos', group_name: 'A', home_team: 'Estados Unidos', home_flag: '🇺🇸', away_team: 'Canadá', away_flag: '🇨🇦', match_date: '2026-06-20', match_time: '22:00', venue: 'Nova York' },
-    { match_number: 6, phase: 'Grupos', group_name: 'A', home_team: 'Arábia Saudita', home_flag: '🇸🇦', away_team: 'México', away_flag: '🇲🇽', match_date: '2026-06-20', match_time: '22:00', venue: 'Los Angeles' },
-    // Group B
-    { match_number: 7, phase: 'Grupos', group_name: 'B', home_team: 'Argentina', home_flag: '🇦🇷', away_team: 'Peru', away_flag: '🇵🇪', match_date: '2026-06-13', match_time: '19:00', venue: 'Miami' },
-    { match_number: 8, phase: 'Grupos', group_name: 'B', home_team: 'Chile', home_flag: '🇨🇱', away_team: 'Austrália', away_flag: '🇦🇺', match_date: '2026-06-13', match_time: '22:00', venue: 'Dallas' },
-    { match_number: 9, phase: 'Grupos', group_name: 'B', home_team: 'Argentina', home_flag: '🇦🇷', away_team: 'Chile', away_flag: '🇨🇱', match_date: '2026-06-17', match_time: '22:00', venue: 'Nova York' },
-    { match_number: 10, phase: 'Grupos', group_name: 'B', home_team: 'Peru', home_flag: '🇵🇪', away_team: 'Austrália', away_flag: '🇦🇺', match_date: '2026-06-17', match_time: '19:00', venue: 'Los Angeles' },
-    { match_number: 11, phase: 'Grupos', group_name: 'B', home_team: 'Argentina', home_flag: '🇦🇷', away_team: 'Austrália', away_flag: '🇦🇺', match_date: '2026-06-21', match_time: '22:00', venue: 'Miami' },
-    { match_number: 12, phase: 'Grupos', group_name: 'B', home_team: 'Austrália', home_flag: '🇦🇺', away_team: 'Chile', away_flag: '🇨🇱', match_date: '2026-06-21', match_time: '22:00', venue: 'Dallas' },
-    // Group C
-    { match_number: 13, phase: 'Grupos', group_name: 'C', home_team: 'Brasil', home_flag: '🇧🇷', away_team: 'Alemanha', away_flag: '🇩🇪', match_date: '2026-06-14', match_time: '19:00', venue: 'Los Angeles' },
-    { match_number: 14, phase: 'Grupos', group_name: 'C', home_team: 'Japão', home_flag: '🇯🇵', away_team: 'Nigéria', away_flag: '🇳🇬', match_date: '2026-06-14', match_time: '22:00', venue: 'São Francisco' },
-    { match_number: 15, phase: 'Grupos', group_name: 'C', home_team: 'Brasil', home_flag: '🇧🇷', away_team: 'Japão', away_flag: '🇯🇵', match_date: '2026-06-18', match_time: '22:00', venue: 'Los Angeles' },
-    { match_number: 16, phase: 'Grupos', group_name: 'C', home_team: 'Alemanha', home_flag: '🇩🇪', away_team: 'Nigéria', away_flag: '🇳🇬', match_date: '2026-06-18', match_time: '19:00', venue: 'Nova York' },
-    { match_number: 17, phase: 'Grupos', group_name: 'C', home_team: 'Brasil', home_flag: '🇧🇷', away_team: 'Nigéria', away_flag: '🇳🇬', match_date: '2026-06-22', match_time: '22:00', venue: 'Houston' },
-    { match_number: 18, phase: 'Grupos', group_name: 'C', home_team: 'Nigéria', home_flag: '🇳🇬', away_team: 'Alemanha', away_flag: '🇩🇪', match_date: '2026-06-22', match_time: '22:00', venue: 'Los Angeles' },
-    // Group D
-    { match_number: 19, phase: 'Grupos', group_name: 'D', home_team: 'França', home_flag: '🇫🇷', away_team: 'México', away_flag: '🇲🇽', match_date: '2026-06-15', match_time: '22:00', venue: 'Cidade do México' },
-    { match_number: 20, phase: 'Grupos', group_name: 'D', home_team: 'Equador', home_flag: '🇪🇨', away_team: 'Senegal', away_flag: '🇸🇳', match_date: '2026-06-15', match_time: '19:00', venue: 'Atlanta' },
-    { match_number: 21, phase: 'Grupos', group_name: 'D', home_team: 'França', home_flag: '🇫🇷', away_team: 'Equador', away_flag: '🇪🇨', match_date: '2026-06-19', match_time: '22:00', venue: 'Nova York' },
-    { match_number: 22, phase: 'Grupos', group_name: 'D', home_team: 'México', home_flag: '🇲🇽', away_team: 'Senegal', away_flag: '🇸🇳', match_date: '2026-06-19', match_time: '19:00', venue: 'Dallas' },
-    { match_number: 23, phase: 'Grupos', group_name: 'D', home_team: 'França', home_flag: '🇫🇷', away_team: 'Senegal', away_flag: '🇸🇳', match_date: '2026-06-23', match_time: '22:00', venue: 'Los Angeles' },
-    { match_number: 24, phase: 'Grupos', group_name: 'D', home_team: 'Senegal', home_flag: '🇸🇳', away_team: 'Equador', away_flag: '🇪🇨', match_date: '2026-06-23', match_time: '22:00', venue: 'Seattle' },
-    // Group E
-    { match_number: 25, phase: 'Grupos', group_name: 'E', home_team: 'Espanha', home_flag: '🇪🇸', away_team: 'Egito', away_flag: '🇪🇬', match_date: '2026-06-12', match_time: '16:00', venue: 'Kansas City' },
-    { match_number: 26, phase: 'Grupos', group_name: 'E', home_team: 'Nova Zelândia', home_flag: '🇳🇿', away_team: 'Bielorrússia', away_flag: '🇧🇾', match_date: '2026-06-12', match_time: '13:00', venue: 'Vancouver' },
-    { match_number: 27, phase: 'Grupos', group_name: 'E', home_team: 'Espanha', home_flag: '🇪🇸', away_team: 'Nova Zelândia', away_flag: '🇳🇿', match_date: '2026-06-16', match_time: '16:00', venue: 'Los Angeles' },
-    { match_number: 28, phase: 'Grupos', group_name: 'E', home_team: 'Egito', home_flag: '🇪🇬', away_team: 'Bielorrússia', away_flag: '🇧🇾', match_date: '2026-06-16', match_time: '13:00', venue: 'Miami' },
-    { match_number: 29, phase: 'Grupos', group_name: 'E', home_team: 'Espanha', home_flag: '🇪🇸', away_team: 'Bielorrússia', away_flag: '🇧🇾', match_date: '2026-06-20', match_time: '16:00', venue: 'Dallas' },
-    { match_number: 30, phase: 'Grupos', group_name: 'E', home_team: 'Bielorrússia', home_flag: '🇧🇾', away_team: 'Nova Zelândia', away_flag: '🇳🇿', match_date: '2026-06-20', match_time: '16:00', venue: 'Seattle' },
-    // Group F
-    { match_number: 31, phase: 'Grupos', group_name: 'F', home_team: 'Portugal', home_flag: '🇵🇹', away_team: 'Costa Rica', away_flag: '🇨🇷', match_date: '2026-06-13', match_time: '16:00', venue: 'Boston' },
-    { match_number: 32, phase: 'Grupos', group_name: 'F', home_team: 'Marrocos', home_flag: '🇲🇦', away_team: 'Tanzânia', away_flag: '🇹🇿', match_date: '2026-06-13', match_time: '13:00', venue: 'Filadélfia' },
-    { match_number: 33, phase: 'Grupos', group_name: 'F', home_team: 'Portugal', home_flag: '🇵🇹', away_team: 'Marrocos', away_flag: '🇲🇦', match_date: '2026-06-17', match_time: '16:00', venue: 'Atlanta' },
-    { match_number: 34, phase: 'Grupos', group_name: 'F', home_team: 'Costa Rica', home_flag: '🇨🇷', away_team: 'Tanzânia', away_flag: '🇹🇿', match_date: '2026-06-17', match_time: '13:00', venue: 'Kansas City' },
-    { match_number: 35, phase: 'Grupos', group_name: 'F', home_team: 'Portugal', home_flag: '🇵🇹', away_team: 'Tanzânia', away_flag: '🇹🇿', match_date: '2026-06-21', match_time: '16:00', venue: 'Boston' },
-    { match_number: 36, phase: 'Grupos', group_name: 'F', home_team: 'Tanzânia', home_flag: '🇹🇿', away_team: 'Costa Rica', away_flag: '🇨🇷', match_date: '2026-06-21', match_time: '16:00', venue: 'Dallas' },
-    // Group G
-    { match_number: 37, phase: 'Grupos', group_name: 'G', home_team: 'Itália', home_flag: '🇮🇹', away_team: 'Honduras', away_flag: '🇭🇳', match_date: '2026-06-14', match_time: '16:00', venue: 'Seattle' },
-    { match_number: 38, phase: 'Grupos', group_name: 'G', home_team: 'Colômbia', home_flag: '🇨🇴', away_team: 'República Tcheca', away_flag: '🇨🇿', match_date: '2026-06-14', match_time: '13:00', venue: 'Chicago' },
-    { match_number: 39, phase: 'Grupos', group_name: 'G', home_team: 'Itália', home_flag: '🇮🇹', away_team: 'Colômbia', away_flag: '🇨🇴', match_date: '2026-06-18', match_time: '16:00', venue: 'Miami' },
-    { match_number: 40, phase: 'Grupos', group_name: 'G', home_team: 'Honduras', home_flag: '🇭🇳', away_team: 'República Tcheca', away_flag: '🇨🇿', match_date: '2026-06-18', match_time: '13:00', venue: 'Houston' },
-    { match_number: 41, phase: 'Grupos', group_name: 'G', home_team: 'Itália', home_flag: '🇮🇹', away_team: 'República Tcheca', away_flag: '🇨🇿', match_date: '2026-06-22', match_time: '16:00', venue: 'Nova York' },
-    { match_number: 42, phase: 'Grupos', group_name: 'G', home_team: 'República Tcheca', home_flag: '🇨🇿', away_team: 'Colômbia', away_flag: '🇨🇴', match_date: '2026-06-22', match_time: '16:00', venue: 'Boston' },
-    // Group H
-    { match_number: 43, phase: 'Grupos', group_name: 'H', home_team: 'Países Baixos', home_flag: '🇳🇱', away_team: 'Quirguistão', away_flag: '🇰🇬', match_date: '2026-06-15', match_time: '16:00', venue: 'Los Angeles' },
-    { match_number: 44, phase: 'Grupos', group_name: 'H', home_team: 'Suíça', home_flag: '🇨🇭', away_team: 'Camarões', away_flag: '🇨🇲', match_date: '2026-06-15', match_time: '13:00', venue: 'Dallas' },
-    { match_number: 45, phase: 'Grupos', group_name: 'H', home_team: 'Países Baixos', home_flag: '🇳🇱', away_team: 'Suíça', away_flag: '🇨🇭', match_date: '2026-06-19', match_time: '16:00', venue: 'Los Angeles' },
-    { match_number: 46, phase: 'Grupos', group_name: 'H', home_team: 'Quirguistão', home_flag: '🇰🇬', away_team: 'Camarões', away_flag: '🇨🇲', match_date: '2026-06-19', match_time: '13:00', venue: 'Houston' },
-    { match_number: 47, phase: 'Grupos', group_name: 'H', home_team: 'Países Baixos', home_flag: '🇳🇱', away_team: 'Camarões', away_flag: '🇨🇲', match_date: '2026-06-23', match_time: '16:00', venue: 'Nova York' },
-    { match_number: 48, phase: 'Grupos', group_name: 'H', home_team: 'Camarões', home_flag: '🇨🇲', away_team: 'Suíça', away_flag: '🇨🇭', match_date: '2026-06-23', match_time: '16:00', venue: 'Seattle' },
-    // Group I
-    { match_number: 49, phase: 'Grupos', group_name: 'I', home_team: 'Croácia', home_flag: '🇭🇷', away_team: 'Tailândia', away_flag: '🇹🇭', match_date: '2026-06-12', match_time: '22:00', venue: 'Miami' },
-    { match_number: 50, phase: 'Grupos', group_name: 'I', home_team: 'Bélgica', home_flag: '🇧🇪', away_team: 'Eslováquia', away_flag: '🇸🇰', match_date: '2026-06-12', match_time: '19:00', venue: 'Los Angeles' },
-    { match_number: 51, phase: 'Grupos', group_name: 'I', home_team: 'Croácia', home_flag: '🇭🇷', away_team: 'Bélgica', away_flag: '🇧🇪', match_date: '2026-06-16', match_time: '22:00', venue: 'Dallas' },
-    { match_number: 52, phase: 'Grupos', group_name: 'I', home_team: 'Tailândia', home_flag: '🇹🇭', away_team: 'Eslováquia', away_flag: '🇸🇰', match_date: '2026-06-16', match_time: '19:00', venue: 'Boston' },
-    { match_number: 53, phase: 'Grupos', group_name: 'I', home_team: 'Croácia', home_flag: '🇭🇷', away_team: 'Eslováquia', away_flag: '🇸🇰', match_date: '2026-06-20', match_time: '22:00', venue: 'Seattle' },
-    { match_number: 54, phase: 'Grupos', group_name: 'I', home_team: 'Eslováquia', home_flag: '🇸🇰', away_team: 'Tailândia', away_flag: '🇹🇭', match_date: '2026-06-20', match_time: '22:00', venue: 'Chicago' },
-    // Group J
-    { match_number: 55, phase: 'Grupos', group_name: 'J', home_team: 'Uruguai', home_flag: '🇺🇾', away_team: 'Coréia do Sul', away_flag: '🇰🇷', match_date: '2026-06-13', match_time: '22:00', venue: 'Kansas City' },
-    { match_number: 56, phase: 'Grupos', group_name: 'J', home_team: 'Polônia', home_flag: '🇵🇱', away_team: 'Afeganistão', away_flag: '🇦🇫', match_date: '2026-06-13', match_time: '19:00', venue: 'Vancouver' },
-    { match_number: 57, phase: 'Grupos', group_name: 'J', home_team: 'Uruguai', home_flag: '🇺🇾', away_team: 'Polônia', away_flag: '🇵🇱', match_date: '2026-06-17', match_time: '22:00', venue: 'Houston' },
-    { match_number: 58, phase: 'Grupos', group_name: 'J', home_team: 'Coréia do Sul', home_flag: '🇰🇷', away_team: 'Afeganistão', away_flag: '🇦🇫', match_date: '2026-06-17', match_time: '19:00', venue: 'Dallas' },
-    { match_number: 59, phase: 'Grupos', group_name: 'J', home_team: 'Uruguai', home_flag: '🇺🇾', away_team: 'Afeganistão', away_flag: '🇦🇫', match_date: '2026-06-21', match_time: '22:00', venue: 'Miami' },
-    { match_number: 60, phase: 'Grupos', group_name: 'J', home_team: 'Afeganistão', home_flag: '🇦🇫', away_team: 'Coréia do Sul', away_flag: '🇰🇷', match_date: '2026-06-21', match_time: '22:00', venue: 'Boston' },
-    // Group K
-    { match_number: 61, phase: 'Grupos', group_name: 'K', home_team: 'Inglaterra', home_flag: '🏴󠁧󠁢󠁥󠁮󠁧󠁿', away_team: 'Tunísia', away_flag: '🇹🇳', match_date: '2026-06-14', match_time: '22:00', venue: 'Nova York' },
-    { match_number: 62, phase: 'Grupos', group_name: 'K', home_team: 'Panamá', home_flag: '🇵🇦', away_team: 'Geórgia', away_flag: '🇬🇪', match_date: '2026-06-14', match_time: '19:00', venue: 'Los Angeles' },
-    { match_number: 63, phase: 'Grupos', group_name: 'K', home_team: 'Inglaterra', home_flag: '🏴󠁧󠁢󠁥󠁮󠁧󠁿', away_team: 'Panamá', away_flag: '🇵🇦', match_date: '2026-06-18', match_time: '22:00', venue: 'Boston' },
-    { match_number: 64, phase: 'Grupos', group_name: 'K', home_team: 'Tunísia', home_flag: '🇹🇳', away_team: 'Geórgia', away_flag: '🇬🇪', match_date: '2026-06-18', match_time: '19:00', venue: 'Chicago' },
-    { match_number: 65, phase: 'Grupos', group_name: 'K', home_team: 'Inglaterra', home_flag: '🏴󠁧󠁢󠁥󠁮󠁧󠁿', away_team: 'Geórgia', away_flag: '🇬🇪', match_date: '2026-06-22', match_time: '22:00', venue: 'Los Angeles' },
-    { match_number: 66, phase: 'Grupos', group_name: 'K', home_team: 'Geórgia', home_flag: '🇬🇪', away_team: 'Panamá', away_flag: '🇵🇦', match_date: '2026-06-22', match_time: '22:00', venue: 'Atlanta' },
-    // Group L
-    { match_number: 67, phase: 'Grupos', group_name: 'L', home_team: 'Irão', home_flag: '🇮🇷', away_team: 'Venezuela', away_flag: '🇻🇪', match_date: '2026-06-15', match_time: '22:00', venue: 'Guadalajara' },
-    { match_number: 68, phase: 'Grupos', group_name: 'L', home_team: 'Turquia', home_flag: '🇹🇷', away_team: 'China', away_flag: '🇨🇳', match_date: '2026-06-15', match_time: '19:00', venue: 'Toronto' },
-    { match_number: 69, phase: 'Grupos', group_name: 'L', home_team: 'Irão', home_flag: '🇮🇷', away_team: 'Turquia', away_flag: '🇹🇷', match_date: '2026-06-19', match_time: '22:00', venue: 'Guadalajara' },
-    { match_number: 70, phase: 'Grupos', group_name: 'L', home_team: 'Venezuela', home_flag: '🇻🇪', away_team: 'China', away_flag: '🇨🇳', match_date: '2026-06-19', match_time: '19:00', venue: 'Boston' },
-    { match_number: 71, phase: 'Grupos', group_name: 'L', home_team: 'Irão', home_flag: '🇮🇷', away_team: 'China', away_flag: '🇨🇳', match_date: '2026-06-23', match_time: '22:00', venue: 'Los Angeles' },
-    { match_number: 72, phase: 'Grupos', group_name: 'L', home_team: 'China', home_flag: '🇨🇳', away_team: 'Venezuela', away_flag: '🇻🇪', match_date: '2026-06-23', match_time: '22:00', venue: 'Toronto' },
-    // Oitavas de final (placeholders)
-    { match_number: 73, phase: 'Oitavas', group_name: null, home_team: 'A definir', home_flag: '🏳️', away_team: 'A definir', away_flag: '🏳️', match_date: '2026-07-04', match_time: '16:00', venue: 'A definir' },
-    { match_number: 74, phase: 'Oitavas', group_name: null, home_team: 'A definir', home_flag: '🏳️', away_team: 'A definir', away_flag: '🏳️', match_date: '2026-07-04', match_time: '22:00', venue: 'A definir' },
-    { match_number: 75, phase: 'Oitavas', group_name: null, home_team: 'A definir', home_flag: '🏳️', away_team: 'A definir', away_flag: '🏳️', match_date: '2026-07-05', match_time: '16:00', venue: 'A definir' },
-    { match_number: 76, phase: 'Oitavas', group_name: null, home_team: 'A definir', home_flag: '🏳️', away_team: 'A definir', away_flag: '🏳️', match_date: '2026-07-05', match_time: '22:00', venue: 'A definir' },
-    { match_number: 77, phase: 'Oitavas', group_name: null, home_team: 'A definir', home_flag: '🏳️', away_team: 'A definir', away_flag: '🏳️', match_date: '2026-07-06', match_time: '16:00', venue: 'A definir' },
-    { match_number: 78, phase: 'Oitavas', group_name: null, home_team: 'A definir', home_flag: '🏳️', away_team: 'A definir', away_flag: '🏳️', match_date: '2026-07-06', match_time: '22:00', venue: 'A definir' },
-    { match_number: 79, phase: 'Oitavas', group_name: null, home_team: 'A definir', home_flag: '🏳️', away_team: 'A definir', away_flag: '🏳️', match_date: '2026-07-07', match_time: '16:00', venue: 'A definir' },
-    { match_number: 80, phase: 'Oitavas', group_name: null, home_team: 'A definir', home_flag: '🏳️', away_team: 'A definir', away_flag: '🏳️', match_date: '2026-07-07', match_time: '22:00', venue: 'A definir' },
-    // Quartas
-    { match_number: 81, phase: 'Quartas', group_name: null, home_team: 'A definir', home_flag: '🏳️', away_team: 'A definir', away_flag: '🏳️', match_date: '2026-07-11', match_time: '16:00', venue: 'A definir' },
-    { match_number: 82, phase: 'Quartas', group_name: null, home_team: 'A definir', home_flag: '🏳️', away_team: 'A definir', away_flag: '🏳️', match_date: '2026-07-11', match_time: '22:00', venue: 'A definir' },
-    { match_number: 83, phase: 'Quartas', group_name: null, home_team: 'A definir', home_flag: '🏳️', away_team: 'A definir', away_flag: '🏳️', match_date: '2026-07-12', match_time: '16:00', venue: 'A definir' },
-    { match_number: 84, phase: 'Quartas', group_name: null, home_team: 'A definir', home_flag: '🏳️', away_team: 'A definir', away_flag: '🏳️', match_date: '2026-07-12', match_time: '22:00', venue: 'A definir' },
-    // Semi
-    { match_number: 85, phase: 'Semi', group_name: null, home_team: 'A definir', home_flag: '🏳️', away_team: 'A definir', away_flag: '🏳️', match_date: '2026-07-15', match_time: '22:00', venue: 'A definir' },
-    { match_number: 86, phase: 'Semi', group_name: null, home_team: 'A definir', home_flag: '🏳️', away_team: 'A definir', away_flag: '🏳️', match_date: '2026-07-16', match_time: '22:00', venue: 'A definir' },
-    // Terceiro
-    { match_number: 87, phase: 'Terceiro', group_name: null, home_team: 'A definir', home_flag: '🏳️', away_team: 'A definir', away_flag: '🏳️', match_date: '2026-07-19', match_time: '18:00', venue: 'Miami' },
-    // Final
-    { match_number: 88, phase: 'Final', group_name: null, home_team: 'A definir', home_flag: '🏳️', away_team: 'A definir', away_flag: '🏳️', match_date: '2026-07-19', match_time: '22:00', venue: 'MetLife, Nova York' },
+    // GRUPOS
+    {n:1,phase:'Grupos',g:'A',ht:'Mexico',hf:'MX',at:'Estados Unidos',af:'US',date:'2026-06-11',time:'22:00'},
+    {n:2,phase:'Grupos',g:'A',ht:'Canada',hf:'CA',at:'Arabia Saudita',af:'SA',date:'2026-06-12',time:'16:00'},
+    {n:3,phase:'Grupos',g:'A',ht:'Mexico',hf:'MX',at:'Canada',af:'CA',date:'2026-06-16',time:'22:00'},
+    {n:4,phase:'Grupos',g:'A',ht:'Estados Unidos',hf:'US',at:'Arabia Saudita',af:'SA',date:'2026-06-16',time:'16:00'},
+    {n:5,phase:'Grupos',g:'A',ht:'Estados Unidos',hf:'US',at:'Canada',af:'CA',date:'2026-06-20',time:'22:00'},
+    {n:6,phase:'Grupos',g:'A',ht:'Arabia Saudita',hf:'SA',at:'Mexico',af:'MX',date:'2026-06-20',time:'22:00'},
+
+    {n:7,phase:'Grupos',g:'B',ht:'Argentina',hf:'AR',at:'Peru',af:'PE',date:'2026-06-13',time:'16:00'},
+    {n:8,phase:'Grupos',g:'B',ht:'Chile',hf:'CL',at:'Australia',af:'AU',date:'2026-06-13',time:'19:00'},
+    {n:9,phase:'Grupos',g:'B',ht:'Argentina',hf:'AR',at:'Chile',af:'CL',date:'2026-06-17',time:'22:00'},
+    {n:10,phase:'Grupos',g:'B',ht:'Peru',hf:'PE',at:'Australia',af:'AU',date:'2026-06-17',time:'16:00'},
+    {n:11,phase:'Grupos',g:'B',ht:'Argentina',hf:'AR',at:'Australia',af:'AU',date:'2026-06-21',time:'22:00'},
+    {n:12,phase:'Grupos',g:'B',ht:'Australia',hf:'AU',at:'Chile',af:'CL',date:'2026-06-21',time:'22:00'},
+
+    {n:13,phase:'Grupos',g:'C',ht:'Brasil',hf:'BR',at:'Alemanha',af:'DE',date:'2026-06-14',time:'16:00'},
+    {n:14,phase:'Grupos',g:'C',ht:'Japao',hf:'JP',at:'Nigeria',af:'NG',date:'2026-06-14',time:'19:00'},
+    {n:15,phase:'Grupos',g:'C',ht:'Brasil',hf:'BR',at:'Japao',af:'JP',date:'2026-06-18',time:'22:00'},
+    {n:16,phase:'Grupos',g:'C',ht:'Alemanha',hf:'DE',at:'Nigeria',af:'NG',date:'2026-06-18',time:'16:00'},
+    {n:17,phase:'Grupos',g:'C',ht:'Brasil',hf:'BR',at:'Nigeria',af:'NG',date:'2026-06-22',time:'22:00'},
+    {n:18,phase:'Grupos',g:'C',ht:'Nigeria',hf:'NG',at:'Alemanha',af:'DE',date:'2026-06-22',time:'22:00'},
+
+    {n:19,phase:'Grupos',g:'D',ht:'Franca',hf:'FR',at:'Equador',af:'EC',date:'2026-06-15',time:'22:00'},
+    {n:20,phase:'Grupos',g:'D',ht:'Senegal',hf:'SN',at:'Venezuela',af:'VE',date:'2026-06-15',time:'16:00'},
+    {n:21,phase:'Grupos',g:'D',ht:'Franca',hf:'FR',at:'Senegal',af:'SN',date:'2026-06-19',time:'22:00'},
+    {n:22,phase:'Grupos',g:'D',ht:'Equador',hf:'EC',at:'Venezuela',af:'VE',date:'2026-06-19',time:'16:00'},
+    {n:23,phase:'Grupos',g:'D',ht:'Franca',hf:'FR',at:'Venezuela',af:'VE',date:'2026-06-23',time:'22:00'},
+    {n:24,phase:'Grupos',g:'D',ht:'Venezuela',hf:'VE',at:'Equador',af:'EC',date:'2026-06-23',time:'22:00'},
+
+    {n:25,phase:'Grupos',g:'E',ht:'Espanha',hf:'ES',at:'Egito',af:'EG',date:'2026-06-12',time:'13:00'},
+    {n:26,phase:'Grupos',g:'E',ht:'Nova Zelandia',hf:'NZ',at:'Bielorrussia',af:'BY',date:'2026-06-12',time:'19:00'},
+    {n:27,phase:'Grupos',g:'E',ht:'Espanha',hf:'ES',at:'Nova Zelandia',af:'NZ',date:'2026-06-16',time:'13:00'},
+    {n:28,phase:'Grupos',g:'E',ht:'Egito',hf:'EG',at:'Bielorrussia',af:'BY',date:'2026-06-16',time:'19:00'},
+    {n:29,phase:'Grupos',g:'E',ht:'Espanha',hf:'ES',at:'Bielorrussia',af:'BY',date:'2026-06-20',time:'13:00'},
+    {n:30,phase:'Grupos',g:'E',ht:'Bielorrussia',hf:'BY',at:'Nova Zelandia',af:'NZ',date:'2026-06-20',time:'13:00'},
+
+    {n:31,phase:'Grupos',g:'F',ht:'Portugal',hf:'PT',at:'Costa Rica',af:'CR',date:'2026-06-13',time:'13:00'},
+    {n:32,phase:'Grupos',g:'F',ht:'Marrocos',hf:'MA',at:'Tanzania',af:'TZ',date:'2026-06-13',time:'22:00'},
+    {n:33,phase:'Grupos',g:'F',ht:'Portugal',hf:'PT',at:'Marrocos',af:'MA',date:'2026-06-17',time:'13:00'},
+    {n:34,phase:'Grupos',g:'F',ht:'Costa Rica',hf:'CR',at:'Tanzania',af:'TZ',date:'2026-06-17',time:'19:00'},
+    {n:35,phase:'Grupos',g:'F',ht:'Portugal',hf:'PT',at:'Tanzania',af:'TZ',date:'2026-06-21',time:'13:00'},
+    {n:36,phase:'Grupos',g:'F',ht:'Tanzania',hf:'TZ',at:'Costa Rica',af:'CR',date:'2026-06-21',time:'13:00'},
+
+    {n:37,phase:'Grupos',g:'G',ht:'Italia',hf:'IT',at:'Honduras',af:'HN',date:'2026-06-14',time:'13:00'},
+    {n:38,phase:'Grupos',g:'G',ht:'Colombia',hf:'CO',at:'Rep. Tcheca',af:'CZ',date:'2026-06-14',time:'22:00'},
+    {n:39,phase:'Grupos',g:'G',ht:'Italia',hf:'IT',at:'Colombia',af:'CO',date:'2026-06-18',time:'13:00'},
+    {n:40,phase:'Grupos',g:'G',ht:'Honduras',hf:'HN',at:'Rep. Tcheca',af:'CZ',date:'2026-06-18',time:'19:00'},
+    {n:41,phase:'Grupos',g:'G',ht:'Italia',hf:'IT',at:'Rep. Tcheca',af:'CZ',date:'2026-06-22',time:'13:00'},
+    {n:42,phase:'Grupos',g:'G',ht:'Rep. Tcheca',hf:'CZ',at:'Colombia',af:'CO',date:'2026-06-22',time:'13:00'},
+
+    {n:43,phase:'Grupos',g:'H',ht:'Paises Baixos',hf:'NL',at:'Quirguistao',af:'KG',date:'2026-06-15',time:'13:00'},
+    {n:44,phase:'Grupos',g:'H',ht:'Suica',hf:'CH',at:'Camaroes',af:'CM',date:'2026-06-15',time:'19:00'},
+    {n:45,phase:'Grupos',g:'H',ht:'Paises Baixos',hf:'NL',at:'Suica',af:'CH',date:'2026-06-19',time:'13:00'},
+    {n:46,phase:'Grupos',g:'H',ht:'Quirguistao',hf:'KG',at:'Camaroes',af:'CM',date:'2026-06-19',time:'19:00'},
+    {n:47,phase:'Grupos',g:'H',ht:'Paises Baixos',hf:'NL',at:'Camaroes',af:'CM',date:'2026-06-23',time:'13:00'},
+    {n:48,phase:'Grupos',g:'H',ht:'Camaroes',hf:'CM',at:'Suica',af:'CH',date:'2026-06-23',time:'13:00'},
+
+    {n:49,phase:'Grupos',g:'I',ht:'Croacia',hf:'HR',at:'Tailandia',af:'TH',date:'2026-06-12',time:'22:00'},
+    {n:50,phase:'Grupos',g:'I',ht:'Belgica',hf:'BE',at:'Eslovaquia',af:'SK',date:'2026-06-12',time:'13:00'},
+    {n:51,phase:'Grupos',g:'I',ht:'Croacia',hf:'HR',at:'Belgica',af:'BE',date:'2026-06-16',time:'22:00'},
+    {n:52,phase:'Grupos',g:'I',ht:'Tailandia',hf:'TH',at:'Eslovaquia',af:'SK',date:'2026-06-16',time:'13:00'},
+    {n:53,phase:'Grupos',g:'I',ht:'Croacia',hf:'HR',at:'Eslovaquia',af:'SK',date:'2026-06-20',time:'22:00'},
+    {n:54,phase:'Grupos',g:'I',ht:'Eslovaquia',hf:'SK',at:'Tailandia',af:'TH',date:'2026-06-20',time:'22:00'},
+
+    {n:55,phase:'Grupos',g:'J',ht:'Uruguai',hf:'UY',at:'Coreia do Sul',af:'KR',date:'2026-06-13',time:'22:00'},
+    {n:56,phase:'Grupos',g:'J',ht:'Polonia',hf:'PL',at:'Afeganistao',af:'AF',date:'2026-06-13',time:'16:00'},
+    {n:57,phase:'Grupos',g:'J',ht:'Uruguai',hf:'UY',at:'Polonia',af:'PL',date:'2026-06-17',time:'22:00'},
+    {n:58,phase:'Grupos',g:'J',ht:'Coreia do Sul',hf:'KR',at:'Afeganistao',af:'AF',date:'2026-06-17',time:'16:00'},
+    {n:59,phase:'Grupos',g:'J',ht:'Uruguai',hf:'UY',at:'Afeganistao',af:'AF',date:'2026-06-21',time:'22:00'},
+    {n:60,phase:'Grupos',g:'J',ht:'Afeganistao',hf:'AF',at:'Coreia do Sul',af:'KR',date:'2026-06-21',time:'22:00'},
+
+    {n:61,phase:'Grupos',g:'K',ht:'Inglaterra',hf:'GB-ENG',at:'Tunisia',af:'TN',date:'2026-06-14',time:'22:00'},
+    {n:62,phase:'Grupos',g:'K',ht:'Panama',hf:'PA',at:'Georgia',af:'GE',date:'2026-06-14',time:'16:00'},
+    {n:63,phase:'Grupos',g:'K',ht:'Inglaterra',hf:'GB-ENG',at:'Panama',af:'PA',date:'2026-06-18',time:'22:00'},
+    {n:64,phase:'Grupos',g:'K',ht:'Tunisia',hf:'TN',at:'Georgia',af:'GE',date:'2026-06-18',time:'16:00'},
+    {n:65,phase:'Grupos',g:'K',ht:'Inglaterra',hf:'GB-ENG',at:'Georgia',af:'GE',date:'2026-06-22',time:'22:00'},
+    {n:66,phase:'Grupos',g:'K',ht:'Georgia',hf:'GE',at:'Panama',af:'PA',date:'2026-06-22',time:'22:00'},
+
+    {n:67,phase:'Grupos',g:'L',ht:'Ira',hf:'IR',at:'Venezuela',af:'VE',date:'2026-06-15',time:'22:00'},
+    {n:68,phase:'Grupos',g:'L',ht:'Turquia',hf:'TR',at:'China',af:'CN',date:'2026-06-15',time:'16:00'},
+    {n:69,phase:'Grupos',g:'L',ht:'Ira',hf:'IR',at:'Turquia',af:'TR',date:'2026-06-19',time:'22:00'},
+    {n:70,phase:'Grupos',g:'L',ht:'Venezuela',hf:'VE',at:'China',af:'CN',date:'2026-06-19',time:'16:00'},
+    {n:71,phase:'Grupos',g:'L',ht:'Ira',hf:'IR',at:'China',af:'CN',date:'2026-06-23',time:'22:00'},
+    {n:72,phase:'Grupos',g:'L',ht:'China',hf:'CN',at:'Venezuela',af:'VE',date:'2026-06-23',time:'22:00'},
+
+    // PRE-OITAVAS (32 -> 16)
+    {n:73,phase:'Pre-Oitavas',g:null,ht:'A definir',hf:'',at:'A definir',af:'',date:'2026-06-28',time:'16:00'},
+    {n:74,phase:'Pre-Oitavas',g:null,ht:'A definir',hf:'',at:'A definir',af:'',date:'2026-06-28',time:'20:00'},
+    {n:75,phase:'Pre-Oitavas',g:null,ht:'A definir',hf:'',at:'A definir',af:'',date:'2026-06-29',time:'16:00'},
+    {n:76,phase:'Pre-Oitavas',g:null,ht:'A definir',hf:'',at:'A definir',af:'',date:'2026-06-29',time:'20:00'},
+    {n:77,phase:'Pre-Oitavas',g:null,ht:'A definir',hf:'',at:'A definir',af:'',date:'2026-06-30',time:'16:00'},
+    {n:78,phase:'Pre-Oitavas',g:null,ht:'A definir',hf:'',at:'A definir',af:'',date:'2026-06-30',time:'20:00'},
+    {n:79,phase:'Pre-Oitavas',g:null,ht:'A definir',hf:'',at:'A definir',af:'',date:'2026-07-01',time:'16:00'},
+    {n:80,phase:'Pre-Oitavas',g:null,ht:'A definir',hf:'',at:'A definir',af:'',date:'2026-07-01',time:'20:00'},
+    {n:81,phase:'Pre-Oitavas',g:null,ht:'A definir',hf:'',at:'A definir',af:'',date:'2026-07-02',time:'16:00'},
+    {n:82,phase:'Pre-Oitavas',g:null,ht:'A definir',hf:'',at:'A definir',af:'',date:'2026-07-02',time:'20:00'},
+    {n:83,phase:'Pre-Oitavas',g:null,ht:'A definir',hf:'',at:'A definir',af:'',date:'2026-07-03',time:'16:00'},
+    {n:84,phase:'Pre-Oitavas',g:null,ht:'A definir',hf:'',at:'A definir',af:'',date:'2026-07-03',time:'20:00'},
+    {n:85,phase:'Pre-Oitavas',g:null,ht:'A definir',hf:'',at:'A definir',af:'',date:'2026-07-04',time:'16:00'},
+    {n:86,phase:'Pre-Oitavas',g:null,ht:'A definir',hf:'',at:'A definir',af:'',date:'2026-07-04',time:'20:00'},
+    {n:87,phase:'Pre-Oitavas',g:null,ht:'A definir',hf:'',at:'A definir',af:'',date:'2026-07-05',time:'16:00'},
+    {n:88,phase:'Pre-Oitavas',g:null,ht:'A definir',hf:'',at:'A definir',af:'',date:'2026-07-05',time:'20:00'},
+
+    // OITAVAS (16 -> 8)
+    {n:89,phase:'Oitavas',g:null,ht:'A definir',hf:'',at:'A definir',af:'',date:'2026-07-08',time:'16:00'},
+    {n:90,phase:'Oitavas',g:null,ht:'A definir',hf:'',at:'A definir',af:'',date:'2026-07-08',time:'20:00'},
+    {n:91,phase:'Oitavas',g:null,ht:'A definir',hf:'',at:'A definir',af:'',date:'2026-07-09',time:'16:00'},
+    {n:92,phase:'Oitavas',g:null,ht:'A definir',hf:'',at:'A definir',af:'',date:'2026-07-09',time:'20:00'},
+    {n:93,phase:'Oitavas',g:null,ht:'A definir',hf:'',at:'A definir',af:'',date:'2026-07-10',time:'16:00'},
+    {n:94,phase:'Oitavas',g:null,ht:'A definir',hf:'',at:'A definir',af:'',date:'2026-07-10',time:'20:00'},
+    {n:95,phase:'Oitavas',g:null,ht:'A definir',hf:'',at:'A definir',af:'',date:'2026-07-11',time:'16:00'},
+    {n:96,phase:'Oitavas',g:null,ht:'A definir',hf:'',at:'A definir',af:'',date:'2026-07-11',time:'20:00'},
+
+    // QUARTAS
+    {n:97,phase:'Quartas',g:null,ht:'A definir',hf:'',at:'A definir',af:'',date:'2026-07-14',time:'16:00'},
+    {n:98,phase:'Quartas',g:null,ht:'A definir',hf:'',at:'A definir',af:'',date:'2026-07-14',time:'20:00'},
+    {n:99,phase:'Quartas',g:null,ht:'A definir',hf:'',at:'A definir',af:'',date:'2026-07-15',time:'16:00'},
+    {n:100,phase:'Quartas',g:null,ht:'A definir',hf:'',at:'A definir',af:'',date:'2026-07-15',time:'20:00'},
+
+    // SEMI
+    {n:101,phase:'Semi',g:null,ht:'A definir',hf:'',at:'A definir',af:'',date:'2026-07-18',time:'20:00'},
+    {n:102,phase:'Semi',g:null,ht:'A definir',hf:'',at:'A definir',af:'',date:'2026-07-19',time:'20:00'},
+
+    // 3o LUGAR
+    {n:103,phase:'Terceiro Lugar',g:null,ht:'A definir',hf:'',at:'A definir',af:'',date:'2026-07-22',time:'16:00'},
+
+    // FINAL
+    {n:104,phase:'Final',g:null,ht:'A definir',hf:'',at:'A definir',af:'',date:'2026-07-22',time:'20:00'},
   ];
 
-  const insertMany = db.transaction((games) => {
-    for (const g of games) insert.run(g);
+  const tx = db.transaction(list => {
+    for (const g of list) ins.run({n:g.n,phase:g.phase,g:g.g,ht:g.ht,hf:g.hf,at:g.at,af:g.af,date:g.date,time:g.time});
   });
-  insertMany(games);
+  tx(games);
 }
 
 module.exports = { db, initializeDatabase };

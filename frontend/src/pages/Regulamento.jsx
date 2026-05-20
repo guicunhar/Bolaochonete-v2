@@ -1,122 +1,49 @@
 export default function Regulamento() {
+  const Block = ({ pts, label, desc, cls }) => (
+    <div style={{ display:'flex', gap:'12px', padding:'14px', background:'var(--card2)', borderRadius:'var(--radius-sm)', border:'1px solid var(--border)' }}>
+      <span className={`badge ${cls}`} style={{ flexShrink:0, alignSelf:'flex-start' }}>{pts}</span>
+      <div>
+        <div style={{ fontWeight:600, fontSize:'0.9rem', marginBottom:'3px' }}>{label}</div>
+        <p style={{ color:'var(--muted)', fontSize:'0.8rem', lineHeight:1.6 }}>{desc}</p>
+      </div>
+    </div>
+  );
+
   return (
-    <div className="fade-in" style={{ maxWidth: '720px' }}>
-      <h1 className="section-title">📋 Regulamento</h1>
+    <div className="fade-up" style={{ maxWidth:'680px' }}>
+      <h1 className="section-title" style={{ marginBottom:'24px' }}>Regulamento</h1>
 
-      <div className="card" style={{ marginBottom: '20px' }}>
-        <h2 style={{ fontSize: '1.6rem', color: 'var(--gold)', marginBottom: '16px' }}>⚽ BOLÃO CHONETE — Copa 2026</h2>
-        <p style={{ color: 'var(--text-dim)', lineHeight: 1.7 }}>
-          O Bolão Chonete é o bolão oficial dos nossos amigos para a Copa do Mundo 2026.
-          Os participantes palpitam nos resultados dos jogos e acumulam pontos ao longo do torneio.
-        </p>
-      </div>
-
-      <div className="card" style={{ marginBottom: '20px' }}>
-        <h3 style={{ fontSize: '1.3rem', color: 'var(--gold)', marginBottom: '16px' }}>🎯 Sistema de Pontuação</h3>
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-          <div style={{ display: 'flex', alignItems: 'flex-start', gap: '12px', padding: '14px', background: 'rgba(0,168,107,0.08)', borderRadius: '8px', border: '1px solid rgba(0,168,107,0.2)' }}>
-            <span className="result-badge badge-total" style={{ flexShrink: 0 }}>+5 pts</span>
-            <div>
-              <strong style={{ color: '#4ade80' }}>Acerto Total</strong>
-              <p style={{ color: 'var(--text-dim)', fontSize: '0.88rem', marginTop: '4px' }}>
-                Acertou o placar exato da partida. Ex: palpitou 2×1 e deu 2×1.
-              </p>
-            </div>
-          </div>
-          <div style={{ display: 'flex', alignItems: 'flex-start', gap: '12px', padding: '14px', background: 'rgba(201,168,76,0.08)', borderRadius: '8px', border: '1px solid rgba(201,168,76,0.2)' }}>
-            <span className="result-badge badge-parcial3" style={{ flexShrink: 0 }}>+3 pts</span>
-            <div>
-              <strong style={{ color: 'var(--gold-light)' }}>Acerto Parcial</strong>
-              <p style={{ color: 'var(--text-dim)', fontSize: '0.88rem', marginTop: '4px' }}>
-                Acertou o vencedor E os gols de um dos times (vencedor ou perdedor).
-                Ex: palpitou 2×0 e deu 2×1 — acertou o vencedor e os gols do time da casa (2).
-              </p>
-            </div>
-          </div>
-          <div style={{ display: 'flex', alignItems: 'flex-start', gap: '12px', padding: '14px', background: 'rgba(59,130,246,0.08)', borderRadius: '8px', border: '1px solid rgba(59,130,246,0.2)' }}>
-            <span className="result-badge badge-parcial1" style={{ flexShrink: 0 }}>+1 pt</span>
-            <div>
-              <strong style={{ color: '#60a5fa' }}>Acerto Básico</strong>
-              <p style={{ color: 'var(--text-dim)', fontSize: '0.88rem', marginTop: '4px' }}>
-                Acertou apenas o vencedor (ou que seria empate).
-                Ex: palpitou 1×0 e deu 3×1 — acertou quem ganhou mas não os gols.
-              </p>
-            </div>
-          </div>
-          <div style={{ display: 'flex', alignItems: 'flex-start', gap: '12px', padding: '14px', background: 'rgba(211,47,47,0.08)', borderRadius: '8px', border: '1px solid rgba(211,47,47,0.2)' }}>
-            <span className="result-badge badge-errou" style={{ flexShrink: 0 }}>0 pts</span>
-            <div>
-              <strong style={{ color: '#f87171' }}>Errou</strong>
-              <p style={{ color: 'var(--text-dim)', fontSize: '0.88rem', marginTop: '4px' }}>
-                Acertou o vencedor errado.
-              </p>
-            </div>
-          </div>
+      <div className="card" style={{ marginBottom:'14px' }}>
+        <h2 style={{ fontSize:'1rem', marginBottom:'10px' }}>Pontuacao por jogo</h2>
+        <div style={{ display:'flex', flexDirection:'column', gap:'8px' }}>
+          <Block pts="+5 pts" cls="badge-exact" label="Acerto Total" desc="Acertou o placar exato. Ex: palpitou 2x1 e deu 2x1." />
+          <Block pts="+3 pts" cls="badge-p3" label="Acerto Parcial" desc="Acertou o vencedor E os gols de um dos times. Ex: palpitou 2x0 e deu 2x1 — acertou o vencedor e os gols do mandante (2)." />
+          <Block pts="+1 pt" cls="badge-p1" label="Acerto Basico" desc="Acertou apenas quem ganhou (ou que seria empate), mas errou os gols." />
+          <Block pts="0 pts" cls="badge-miss" label="Errou" desc="Acertou o vencedor errado." />
         </div>
       </div>
 
-      <div className="card" style={{ marginBottom: '20px' }}>
-        <h3 style={{ fontSize: '1.3rem', color: 'var(--gold)', marginBottom: '16px' }}>🏆 Palpites Especiais (Bônus)</h3>
-        <p style={{ color: 'var(--text-dim)', fontSize: '0.88rem', marginBottom: '12px' }}>
-          Feitos no momento do cadastro. Podem ser alterados até o início da Copa (11/06/2026).
-        </p>
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '12px 16px', background: 'rgba(255,255,255,0.03)', borderRadius: '8px' }}>
-            <div>
-              <strong>🥇 Seleção Campeã</strong>
-              <p style={{ color: 'var(--text-dim)', fontSize: '0.82rem' }}>Acertou o campeão</p>
-            </div>
-            <div style={{ display: 'flex', gap: '8px' }}>
-              <span className="result-badge badge-total">+50 pts</span>
-            </div>
-          </div>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '12px 16px', background: 'rgba(255,255,255,0.03)', borderRadius: '8px' }}>
-            <div>
-              <strong>🥈 Vice-Campeã</strong>
-              <p style={{ color: 'var(--text-dim)', fontSize: '0.82rem' }}>Palpitou no campeão, mas a seleção foi vice</p>
-            </div>
-            <span className="result-badge badge-parcial3">+25 pts</span>
-          </div>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '12px 16px', background: 'rgba(255,255,255,0.03)', borderRadius: '8px' }}>
-            <div>
-              <strong>⭐ Melhor Jogador da Copa</strong>
-              <p style={{ color: 'var(--text-dim)', fontSize: '0.82rem' }}>Escolhido pela FIFA</p>
-            </div>
-            <span className="result-badge badge-total">+25 pts</span>
-          </div>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '12px 16px', background: 'rgba(255,255,255,0.03)', borderRadius: '8px' }}>
-            <div>
-              <strong>👟 Artilheiro</strong>
-              <p style={{ color: 'var(--text-dim)', fontSize: '0.82rem' }}>Acertou o artilheiro exato</p>
-            </div>
-            <span className="result-badge badge-total">+20 pts</span>
-          </div>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '12px 16px', background: 'rgba(255,255,255,0.03)', borderRadius: '8px' }}>
-            <div>
-              <strong>👟 Artilheiro (critério de desempate)</strong>
-              <p style={{ color: 'var(--text-dim)', fontSize: '0.82rem' }}>Mais gols mas perdeu no desempate da FIFA</p>
-            </div>
-            <span className="result-badge badge-parcial3">+10 pts</span>
-          </div>
+      <div className="card" style={{ marginBottom:'14px' }}>
+        <h2 style={{ fontSize:'1rem', marginBottom:'10px' }}>Palpites Bonus (feitos na ativacao)</h2>
+        <div style={{ display:'flex', flexDirection:'column', gap:'8px' }}>
+          <Block pts="+50" cls="badge-exact" label="Selecao Campea" desc="Acertou o campeao do mundo." />
+          <Block pts="+25" cls="badge-p3" label="Vice-campea" desc="Palpitou no campeao, mas a selecao foi ate a final e perdeu." />
+          <Block pts="+25" cls="badge-exact" label="Melhor Jogador" desc="Acertou o Bola de Ouro da Copa (escolha da FIFA)." />
+          <Block pts="+20" cls="badge-exact" label="Artilheiro" desc="Acertou o artilheiro exato do torneio." />
+          <Block pts="+10" cls="badge-p3" label="Artilheiro (desempate)" desc="O jogador marcou mais gols mas perdeu no criterio de desempate da FIFA." />
         </div>
       </div>
 
-      <div className="card" style={{ marginBottom: '20px' }}>
-        <h3 style={{ fontSize: '1.3rem', color: 'var(--gold)', marginBottom: '12px' }}>📅 Prazos</h3>
-        <ul style={{ color: 'var(--text-dim)', lineHeight: 1.8, paddingLeft: '20px', fontSize: '0.9rem' }}>
-          <li>Os palpites de cada jogo são bloqueados automaticamente no horário de início da partida.</li>
-          <li>Horários exibidos no fuso de Brasília (GMT-3).</li>
-          <li>Palpites não enviados antes do jogo resultam em 0 pontos para aquela partida.</li>
-          <li>Palpites especiais podem ser alterados até 11/06/2026.</li>
-        </ul>
-      </div>
-
-      <div className="card">
-        <h3 style={{ fontSize: '1.3rem', color: 'var(--gold)', marginBottom: '12px' }}>👁️ Transparência</h3>
-        <ul style={{ color: 'var(--text-dim)', lineHeight: 1.8, paddingLeft: '20px', fontSize: '0.9rem' }}>
-          <li>Todos os palpites ficam públicos após o início de cada jogo.</li>
-          <li>Os resultados são inseridos manualmente pelo administrador.</li>
-          <li>Em caso de dúvidas, fale com o administrador do bolão.</li>
+      <div className="card" style={{ marginBottom:'14px' }}>
+        <h2 style={{ fontSize:'1rem', marginBottom:'10px' }}>Prazos e regras</h2>
+        <ul style={{ color:'var(--muted)', lineHeight:1.9, paddingLeft:'18px', fontSize:'0.85rem' }}>
+          <li>Palpites bloqueados automaticamente no horario de inicio de cada partida.</li>
+          <li>Horarios no fuso de Brasilia (GMT-3).</li>
+          <li>Palpite nao enviado = 0 pontos na partida.</li>
+          <li>Palpites bonus sao definitivos e nao podem ser alterados apos a ativacao da conta.</li>
+          <li>Se nao marcar "anonimo", seu palpite aparece publico antes do jogo comecar.</li>
+          <li>Palpites anonimos so ficam visiveis apos o apito inicial.</li>
+          <li>Resultados inseridos manualmente pelo administrador.</li>
         </ul>
       </div>
     </div>

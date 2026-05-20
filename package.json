@@ -1,10 +1,8 @@
 {
-  "name": "bolao-chonete-2026",
+  "name": "bolaochonete",
   "version": "1.0.0",
   "scripts": {
     "build": "cd frontend && npm install && npm run build",
-    "start": "cd backend && npm install && node server.js",
-    "dev:backend": "cd backend && npm install && npm run dev",
-    "dev:frontend": "cd frontend && npm install && npm run dev"
+    "start": "cd backend && npm install && node server.js"
   }
 }

@@ -1,6 +1,6 @@
 import { createContext, useContext, useState, useEffect } from 'react';
 
-const AuthContext = createContext(null);
+const Ctx = createContext(null);
 
 export function AuthProvider({ children }) {
   const [user, setUser] = useState(null);
@@ -8,52 +8,35 @@ export function AuthProvider({ children }) {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    if (token) {
-      fetch('/api/me', { headers: { Authorization: `Bearer ${token}` } })
-        .then(r => r.ok ? r.json() : null)
-        .then(data => {
-          if (data) setUser(data);
-          else { setToken(null); localStorage.removeItem('token'); }
-        })
-        .finally(() => setLoading(false));
-    } else {
-      setLoading(false);
-    }
+    if (!token) { setLoading(false); return; }
+    fetch('/api/me', { headers: { Authorization: `Bearer ${token}` } })
+      .then(r => r.ok ? r.json() : null)
+      .then(d => { if (d) setUser(d); else { setToken(null); localStorage.removeItem('token'); } })
+      .finally(() => setLoading(false));
   }, [token]);
 
-  const login = (tokenVal, userData) => {
-    localStorage.setItem('token', tokenVal);
-    setToken(tokenVal);
-    setUser(userData);
+  const login = (tok, userData) => {
+    localStorage.setItem('token', tok);
+    setToken(tok); setUser(userData);
   };
-
   const logout = () => {
     localStorage.removeItem('token');
-    setToken(null);
-    setUser(null);
+    setToken(null); setUser(null);
   };
-
-  const apiCall = async (url, options = {}) => {
-    const res = await fetch(url, {
-      ...options,
-      headers: {
-        'Content-Type': 'application/json',
-        Authorization: `Bearer ${token}`,
-        ...options.headers,
-      },
+  const refreshUser = async () => {
+    const d = await api('/api/me');
+    setUser(d);
+  };
+  const api = async (url, opts = {}) => {
+    const r = await fetch(url, {
+      ...opts,
+      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}`, ...opts.headers }
     });
-    if (!res.ok) {
-      const err = await res.json().catch(() => ({ error: 'Erro desconhecido' }));
-      throw new Error(err.error || 'Erro na requisição');
-    }
-    return res.json();
+    if (!r.ok) { const e = await r.json().catch(() => ({})); throw new Error(e.error || 'Erro'); }
+    return r.json();
   };
 
-  return (
-    <AuthContext.Provider value={{ user, token, login, logout, loading, apiCall }}>
-      {children}
-    </AuthContext.Provider>
-  );
+  return <Ctx.Provider value={{ user, token, login, logout, loading, api, refreshUser }}>{children}</Ctx.Provider>;
 }
 
-export const useAuth = () => useContext(AuthContext);
+export const useAuth = () => useContext(Ctx);
