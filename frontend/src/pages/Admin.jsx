@@ -6,12 +6,30 @@ const PHASES     = ['Grupos','Pré-Oitavas','Oitavas','Quartas','Semi','Terceiro
 const PHASE_KEYS = ['Grupos','Pre-Oitavas','Oitavas','Quartas','Semi','Terceiro Lugar','Final'];
 
 const TEAMS = [
-  'Mexico','Estados Unidos','Canada','Arabia Saudita','Argentina','Peru','Chile','Australia',
-  'Brasil','Alemanha','Japao','Nigeria','Franca','Equador','Senegal','Venezuela','Espanha',
-  'Egito','Nova Zelandia','Bielorrussia','Portugal','Costa Rica','Marrocos','Tanzania',
-  'Italia','Honduras','Colombia','Rep. Tcheca','Paises Baixos','Quirguistao','Suica',
-  'Camaroes','Croacia','Tailandia','Belgica','Eslovaquia','Uruguai','Coreia do Sul',
-  'Polonia','Afeganistao','Inglaterra','Tunisia','Panama','Georgia','Ira','Turquia','China',
+  // Grupo A
+  'México','África do Sul','Coreia do Sul','Rep. Tcheca',
+  // Grupo B
+  'Canadá','Suíça','Catar','Bósnia',
+  // Grupo C
+  'Brasil','Marrocos','Escócia','Haiti',
+  // Grupo D
+  'Estados Unidos','Paraguai','Austrália','Turquia',
+  // Grupo E
+  'Alemanha','Curaçao','Costa do Marfim','Equador',
+  // Grupo F
+  'Países Baixos','Japão','Suécia','Tunísia',
+  // Grupo G
+  'Bélgica','Egito','Irã','Nova Zelândia',
+  // Grupo H
+  'Espanha','Uruguai','Arábia Saudita','Cabo Verde',
+  // Grupo I
+  'França','Senegal','Noruega','Iraque',
+  // Grupo J
+  'Argentina','Argélia','Áustria','Jordânia',
+  // Grupo K
+  'Portugal','Colômbia','Uzbequistão','RD Congo',
+  // Grupo L
+  'Inglaterra','Croácia','Gana','Panamá',
 ];
 
 export default function Admin() {
@@ -25,7 +43,8 @@ export default function Admin() {
   const [users, setUsers] = useState([]);
   const [newUser, setNewUser] = useState({ name:'', username:'' });
   const [loading, setLoading] = useState(true);
-  const [uploadingAvatar, setUploadingAvatar] = useState({});
+  const [avatarUrlInput, setAvatarUrlInput] = useState({});
+  const [savingAvatarUrl, setSavingAvatarUrl] = useState({});
 
   // Bonus state
   const [bonusResults, setBonusResults] = useState({ champion: '', vice: '' });
@@ -103,20 +122,19 @@ export default function Admin() {
     await loadUsers();
   };
 
-  const uploadAvatar = async (userId, file) => {
-    setUploadingAvatar(u => ({ ...u, [userId]: true }));
-    const formData = new FormData();
-    formData.append('avatar', file);
+  const saveAvatarUrl = async (userId) => {
+    const url = avatarUrlInput[userId]?.trim();
+    if (!url) return;
+    setSavingAvatarUrl(s => ({ ...s, [userId]: true }));
     try {
-      const res = await fetch(`/api/admin/users/${userId}/avatar`, {
+      await api(`/api/admin/users/${userId}/avatar-url`, {
         method: 'POST',
-        headers: { Authorization: `Bearer ${token}` },
-        body: formData
+        body: JSON.stringify({ avatar_url: url }),
       });
-      if (!res.ok) throw new Error('Falha no upload');
       await loadUsers();
+      setAvatarUrlInput(a => ({ ...a, [userId]: '' }));
     } catch(e) { alert(e.message); }
-    finally { setUploadingAvatar(u => ({ ...u, [userId]: false })); }
+    finally { setSavingAvatarUrl(s => ({ ...s, [userId]: false })); }
   };
 
   // ── Bonus helpers ─────────────────────────────────────────────────────────
@@ -281,12 +299,8 @@ export default function Admin() {
           <div style={{ display:'flex', flexDirection:'column', gap:'8px' }}>
             {users.filter(u => !u.is_admin).map(u => (
               <div key={u.id} className="card card-sm" style={{ display:'flex', gap:'14px', alignItems:'center' }}>
-                <div style={{ position:'relative', flexShrink:0 }}>
+                <div style={{ flexShrink:0 }}>
                   <Avatar src={u.avatar_path} name={u.name} size={44} />
-                  <label style={{ position:'absolute', bottom:-2, right:-2, width:18, height:18, borderRadius:'50%', background:'var(--lime)', cursor:'pointer', display:'flex', alignItems:'center', justifyContent:'center', fontSize:'0.6rem', color:'var(--black)', fontWeight:700 }}>
-                    {uploadingAvatar[u.id] ? '...' : '+'}
-                    <input type="file" accept="image/*" style={{ display:'none' }} onChange={e => e.target.files[0] && uploadAvatar(u.id, e.target.files[0])} />
-                  </label>
                 </div>
                 <div style={{ flex:1, minWidth:0 }}>
                   <div style={{ fontWeight:600, fontSize:'0.9rem' }}>{u.name}</div>
@@ -302,7 +316,26 @@ export default function Admin() {
                     </div>
                   )}
                 </div>
-                <button className="btn btn-danger btn-sm" onClick={() => deleteUser(u.id)}>Remover</button>
+                <div style={{ display:'flex', flexDirection:'column', gap:'4px', alignItems:'flex-end', flexShrink:0 }}>
+                  <div style={{ display:'flex', gap:'4px' }}>
+                    <input
+                      className="admin-input"
+                      style={{ width:180, fontSize:'0.72rem' }}
+                      placeholder="URL da foto..."
+                      value={avatarUrlInput[u.id] || ''}
+                      onChange={e => setAvatarUrlInput(a => ({ ...a, [u.id]: e.target.value }))}
+                      onKeyDown={e => e.key === 'Enter' && saveAvatarUrl(u.id)}
+                    />
+                    <button
+                      className="btn btn-dark btn-sm"
+                      onClick={() => saveAvatarUrl(u.id)}
+                      disabled={savingAvatarUrl[u.id]}
+                    >
+                      {savingAvatarUrl[u.id] ? '...' : '💾'}
+                    </button>
+                  </div>
+                  <button className="btn btn-danger btn-sm" onClick={() => deleteUser(u.id)}>Remover</button>
+                </div>
               </div>
             ))}
           </div>

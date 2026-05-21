@@ -3,8 +3,6 @@ const cors = require('cors');
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 const path = require('path');
-const fs = require('fs');
-const multer = require('multer');
 const { initializeDatabase, all, get, run } = require('./database');
 const { calculatePoints } = require('./scoring');
 
@@ -12,18 +10,6 @@ const app = express();
 const PORT = process.env.PORT || 3001;
 const JWT_SECRET = process.env.JWT_SECRET || 'bolaochonete-2026-secret';
 
-// Uploads dir — usa env var para apontar para storage externo (ex: /var/data/uploads no Render)
-const UPLOADS_DIR = process.env.UPLOADS_DIR || path.join(__dirname, 'uploads');
-if (!fs.existsSync(UPLOADS_DIR)) fs.mkdirSync(UPLOADS_DIR, { recursive: true });
-
-const storage = multer.diskStorage({
-  destination: UPLOADS_DIR,
-  filename: (req, file, cb) => {
-    const ext = path.extname(file.originalname) || '.jpg';
-    cb(null, `avatar_${req.params.userId || Date.now()}${ext}`);
-  }
-});
-const upload = multer({ storage, limits: { fileSize: 5 * 1024 * 1024 } });
 
 app.use(cors());
 app.use(express.json());
@@ -38,7 +24,6 @@ initializeDatabase().then(() => {
 
 const FRONTEND_DIST = path.join(__dirname, '..', 'frontend', 'dist');
 app.use(express.static(FRONTEND_DIST));
-app.use('/uploads', express.static(UPLOADS_DIR));
 
 app.get('/api/health', (_, res) => res.json({ ok: true }));
 
@@ -295,12 +280,13 @@ app.delete('/api/admin/users/:id', auth, adminOnly, async (req, res) => {
   } catch(e) { res.status(500).json({ error: e.message }); }
 });
 
-app.post('/api/admin/users/:userId/avatar', auth, adminOnly, upload.single('avatar'), async (req, res) => {
+// Avatar por URL (sem upload de arquivo)
+app.post('/api/admin/users/:userId/avatar-url', auth, adminOnly, async (req, res) => {
   try {
-    if (!req.file) return res.status(400).json({ error: 'Nenhum arquivo enviado' });
-    const avatarPath = `/uploads/${req.file.filename}`;
-    await run('UPDATE users SET avatar_path=? WHERE id=?', [avatarPath, req.params.userId]);
-    res.json({ avatar_path: avatarPath });
+    const { avatar_url } = req.body;
+    if (!avatar_url) return res.status(400).json({ error: 'URL obrigatória' });
+    await run('UPDATE users SET avatar_path=? WHERE id=?', [avatar_url, req.params.userId]);
+    res.json({ avatar_path: avatar_url });
   } catch(e) { res.status(500).json({ error: e.message }); }
 });
 
