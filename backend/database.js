@@ -22,6 +22,7 @@ function initializeDatabase() {
       best_player_pick TEXT,
       top_scorer_pick TEXT,
       bonus_locked INTEGER DEFAULT 0,
+      bonus_extra_points INTEGER DEFAULT 0,
       created_at DATETIME DEFAULT CURRENT_TIMESTAMP
     );
 
@@ -55,7 +56,30 @@ function initializeDatabase() {
       FOREIGN KEY (game_id) REFERENCES games(id),
       UNIQUE(user_id, game_id)
     );
+
+    CREATE TABLE IF NOT EXISTS bonus_results (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      champion TEXT,
+      best_player TEXT,
+      top_scorer TEXT,
+      updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
+    );
+
+    CREATE TABLE IF NOT EXISTS bonus_awards (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      user_id INTEGER NOT NULL,
+      award_type TEXT NOT NULL,
+      points INTEGER NOT NULL,
+      awarded_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+      FOREIGN KEY (user_id) REFERENCES users(id),
+      UNIQUE(user_id, award_type)
+    );
   `);
+
+  // Migrate: add bonus_extra_points if missing
+  try {
+    db.exec(`ALTER TABLE users ADD COLUMN bonus_extra_points INTEGER DEFAULT 0`);
+  } catch(e) { /* already exists */ }
 
   // Create admin
   const admin = db.prepare('SELECT id FROM users WHERE username = ?').get('admin');
@@ -64,6 +88,12 @@ function initializeDatabase() {
     db.prepare(`INSERT INTO users (name, username, password_hash, is_admin, is_precadastro, bonus_locked) VALUES (?, ?, ?, 1, 0, 1)`)
       .run('Administrador', 'admin', hash);
     console.log('Admin: admin / admin2026');
+  }
+
+  // Ensure bonus_results row exists
+  const br = db.prepare('SELECT id FROM bonus_results').get();
+  if (!br) {
+    db.prepare('INSERT INTO bonus_results (champion, best_player, top_scorer) VALUES (NULL, NULL, NULL)').run();
   }
 
   const gameCount = db.prepare('SELECT COUNT(*) as c FROM games').get();

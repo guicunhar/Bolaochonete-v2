@@ -50,7 +50,6 @@ function adminOnly(req, res, next) {
 
 // ── AUTH ─────────────────────────────────────────────────────────────────────
 
-// First login: user pre-registered by admin, sets password + bonus picks
 app.post('/api/first-login', (req, res) => {
   const { username, password, champion_pick, best_player_pick, top_scorer_pick } = req.body;
   const user = db.prepare('SELECT * FROM users WHERE username = ?').get(username?.toLowerCase());
@@ -70,7 +69,7 @@ app.post('/api/login', (req, res) => {
   const { username, password } = req.body;
   const user = db.prepare('SELECT * FROM users WHERE username = ?').get(username?.toLowerCase());
   if (!user) return res.status(401).json({ error: 'Usuario ou senha incorretos' });
-  if (user.is_precadastro) return res.status(400).json({ error: 'first-login' }); // signal to redirect
+  if (user.is_precadastro) return res.status(400).json({ error: 'first-login' });
   if (!bcrypt.compareSync(password, user.password_hash)) return res.status(401).json({ error: 'Usuario ou senha incorretos' });
   const token = jwt.sign({ id: user.id, username: user.username, name: user.name, is_admin: !!user.is_admin }, JWT_SECRET, { expiresIn: '30d' });
   res.json({ token, user: { id: user.id, name: user.name, username: user.username, is_admin: !!user.is_admin, avatar_path: user.avatar_path } });
@@ -125,7 +124,6 @@ app.get('/api/bets/all', auth, (req, res) => {
     ORDER BY g.match_date, g.match_time, u.name
   `).all();
 
-  // Filter: anonymous bets hidden until match starts
   const filtered = bets.map(b => {
     const matchStart = new Date(`${b.match_date}T${b.match_time}:00-03:00`);
     const started = now >= matchStart;
@@ -141,6 +139,18 @@ app.get('/api/bets/all', auth, (req, res) => {
 
 app.get('/api/ranking', auth, (req, res) => {
   const users = db.prepare('SELECT id,name,username,avatar_path,champion_pick,best_player_pick,top_scorer_pick FROM users WHERE is_admin=0 AND is_precadastro=0').all();
+
+  // Get bonus awards
+  const awards = db.prepare('SELECT * FROM bonus_awards').all();
+  const awardsByUser = {};
+  for (const a of awards) {
+    if (!awardsByUser[a.user_id]) awardsByUser[a.user_id] = [];
+    awardsByUser[a.user_id].push(a);
+  }
+
+  // Get bonus results config
+  const bonusResults = db.prepare('SELECT * FROM bonus_results').get();
+
   const ranking = users.map(user => {
     const bets = db.prepare(`
       SELECT b.*, g.home_score as rh, g.away_score as ra FROM bets b
@@ -152,7 +162,28 @@ app.get('/api/ranking', auth, (req, res) => {
       const p = calculatePoints(b.home_score,b.away_score,b.rh,b.ra);
       pts+=p; if(p===5)exact++; else if(p===3)p3++; else if(p===1)p1++;
     }
-    return {...user, total_points:pts, exact, partial3:p3, partial1:p1};
+
+    // Add bonus award points
+    const userAwards = awardsByUser[user.id] || [];
+    let bonusPts = 0;
+    const awardDetails = {};
+    for (const a of userAwards) {
+      bonusPts += a.points;
+      awardDetails[a.award_type] = a.points;
+    }
+
+    // Calculate champion points from bonus_results if not manually awarded
+    if (bonusResults?.champion && user.champion_pick && !awardDetails['champion'] && !awardDetails['champion_vice']) {
+      const normalizeStr = s => s?.toLowerCase().trim().replace(/[áàã]/g,'a').replace(/[éè]/g,'e').replace(/[íì]/g,'i').replace(/[óòõ]/g,'o').replace(/[úù]/g,'u').replace(/[ç]/g,'c');
+      if (normalizeStr(user.champion_pick) === normalizeStr(bonusResults.champion)) {
+        bonusPts += 50;
+        awardDetails['champion'] = 50;
+      }
+    }
+
+    pts += bonusPts;
+
+    return {...user, total_points:pts, exact, partial3:p3, partial1:p1, bonus_points:bonusPts, award_details:awardDetails, bonus_results: bonusResults};
   });
   ranking.sort((a,b)=>b.total_points-a.total_points);
   res.json(ranking);
@@ -193,7 +224,15 @@ app.delete('/api/admin/games/:id', auth, adminOnly, (req, res) => {
 
 // Admin: user management
 app.get('/api/admin/users', auth, adminOnly, (req, res) => {
-  res.json(db.prepare('SELECT id,name,username,is_admin,is_precadastro,avatar_path,champion_pick,best_player_pick,top_scorer_pick,created_at FROM users ORDER BY id').all());
+  const users = db.prepare('SELECT id,name,username,is_admin,is_precadastro,avatar_path,champion_pick,best_player_pick,top_scorer_pick,created_at FROM users ORDER BY id').all();
+  const awards = db.prepare('SELECT * FROM bonus_awards').all();
+  const awardsByUser = {};
+  for (const a of awards) {
+    if (!awardsByUser[a.user_id]) awardsByUser[a.user_id] = {};
+    awardsByUser[a.user_id][a.award_type] = a.points;
+  }
+  const result = users.map(u => ({ ...u, awards: awardsByUser[u.id] || {} }));
+  res.json(result);
 });
 
 app.post('/api/admin/users', auth, adminOnly, (req, res) => {
@@ -208,6 +247,7 @@ app.post('/api/admin/users', auth, adminOnly, (req, res) => {
 app.delete('/api/admin/users/:id', auth, adminOnly, (req, res) => {
   if (req.params.id == req.user.id) return res.status(400).json({ error: 'Não pode deletar a si mesmo' });
   db.prepare('DELETE FROM bets WHERE user_id=?').run(req.params.id);
+  db.prepare('DELETE FROM bonus_awards WHERE user_id=?').run(req.params.id);
   db.prepare('DELETE FROM users WHERE id=?').run(req.params.id);
   res.json({ ok: true });
 });
@@ -218,6 +258,96 @@ app.post('/api/admin/users/:userId/avatar', auth, adminOnly, upload.single('avat
   const avatarPath = `/uploads/${req.file.filename}`;
   db.prepare('UPDATE users SET avatar_path=? WHERE id=?').run(avatarPath, req.params.userId);
   res.json({ avatar_path: avatarPath });
+});
+
+// ── BONUS RESULTS (Admin) ─────────────────────────────────────────────────────
+
+// Get current bonus results config
+app.get('/api/admin/bonus-results', auth, adminOnly, (req, res) => {
+  const br = db.prepare('SELECT * FROM bonus_results').get();
+  res.json(br || {});
+});
+
+// Update champion (auto-awards points to matching picks)
+app.put('/api/admin/bonus-results/champion', auth, adminOnly, (req, res) => {
+  const { champion } = req.body;
+  db.prepare('UPDATE bonus_results SET champion=?, updated_at=CURRENT_TIMESTAMP').run(champion || null);
+
+  if (champion) {
+    const normalizeStr = s => s?.toLowerCase().trim()
+      .replace(/[áàãâ]/g,'a').replace(/[éèê]/g,'e').replace(/[íìî]/g,'i')
+      .replace(/[óòõô]/g,'o').replace(/[úùû]/g,'u').replace(/[ç]/g,'c')
+      .replace(/\s+/g,' ');
+
+    const champNorm = normalizeStr(champion);
+    const users = db.prepare('SELECT id, champion_pick FROM users WHERE is_admin=0 AND is_precadastro=0 AND champion_pick IS NOT NULL').all();
+
+    // Remove old champion awards before re-awarding
+    db.prepare("DELETE FROM bonus_awards WHERE award_type IN ('champion', 'champion_vice')").run();
+
+    for (const u of users) {
+      const pickNorm = normalizeStr(u.champion_pick);
+      if (pickNorm === champNorm) {
+        db.prepare(`INSERT OR REPLACE INTO bonus_awards (user_id, award_type, points) VALUES (?, 'champion', 50)`).run(u.id);
+      }
+    }
+  } else {
+    db.prepare("DELETE FROM bonus_awards WHERE award_type IN ('champion', 'champion_vice')").run();
+  }
+
+  res.json({ ok: true });
+});
+
+// Set vice-champion (for those who picked the finalist that lost)
+app.put('/api/admin/bonus-results/vice', auth, adminOnly, (req, res) => {
+  const { vice } = req.body;
+  db.prepare('UPDATE bonus_results SET updated_at=CURRENT_TIMESTAMP').run();
+
+  if (vice) {
+    const normalizeStr = s => s?.toLowerCase().trim()
+      .replace(/[áàãâ]/g,'a').replace(/[éèê]/g,'e').replace(/[íìî]/g,'i')
+      .replace(/[óòõô]/g,'o').replace(/[úùû]/g,'u').replace(/[ç]/g,'c')
+      .replace(/\s+/g,' ');
+
+    const viceNorm = normalizeStr(vice);
+    const users = db.prepare('SELECT id, champion_pick FROM users WHERE is_admin=0 AND is_precadastro=0 AND champion_pick IS NOT NULL').all();
+
+    db.prepare("DELETE FROM bonus_awards WHERE award_type='champion_vice'").run();
+
+    for (const u of users) {
+      const pickNorm = normalizeStr(u.champion_pick);
+      // Award vice only if not already champion
+      if (pickNorm === viceNorm) {
+        const alreadyChamp = db.prepare("SELECT id FROM bonus_awards WHERE user_id=? AND award_type='champion'").get(u.id);
+        if (!alreadyChamp) {
+          db.prepare(`INSERT OR REPLACE INTO bonus_awards (user_id, award_type, points) VALUES (?, 'champion_vice', 25)`).run(u.id);
+        }
+      }
+    }
+  } else {
+    db.prepare("DELETE FROM bonus_awards WHERE award_type='champion_vice'").run();
+  }
+
+  res.json({ ok: true });
+});
+
+// Award best_player or top_scorer manually per user (checkbox toggle)
+app.post('/api/admin/bonus-awards', auth, adminOnly, (req, res) => {
+  const { user_id, award_type, points, remove } = req.body;
+  if (!['best_player', 'best_player_partial', 'top_scorer', 'top_scorer_partial'].includes(award_type)) {
+    return res.status(400).json({ error: 'Tipo inválido' });
+  }
+  if (remove) {
+    db.prepare('DELETE FROM bonus_awards WHERE user_id=? AND award_type=?').run(user_id, award_type);
+  } else {
+    db.prepare('INSERT OR REPLACE INTO bonus_awards (user_id, award_type, points) VALUES (?,?,?)').run(user_id, award_type, points);
+  }
+  res.json({ ok: true });
+});
+
+// Get all bonus awards
+app.get('/api/admin/bonus-awards', auth, adminOnly, (req, res) => {
+  res.json(db.prepare('SELECT * FROM bonus_awards').all());
 });
 
 // SPA fallback
