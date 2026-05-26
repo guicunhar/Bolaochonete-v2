@@ -98,7 +98,7 @@ export default function PrimeiroAcesso() {
           <h2 style={{ fontSize:'1.1rem', marginBottom:'6px' }}>Primeiro acesso</h2>
           <p style={{ color:'var(--muted)', fontSize:'0.82rem', marginBottom:'20px' }}>
             Defina sua senha e faça seus palpites bônus —{' '}
-            <strong style={{ color:'var(--lime)' }}>eles não poderão ser alterados depois!</strong>
+            <strong style={{ color:'var(--lime)' }}>eles podem ser alterados até 11/05 às 15h59.</strong>
           </p>
 
           {error && <div className="alert alert-error">{error}</div>}

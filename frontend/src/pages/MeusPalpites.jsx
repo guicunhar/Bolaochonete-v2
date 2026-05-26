@@ -4,6 +4,7 @@ import Flag from '../components/Flag';
 
 const PHASES = ['Grupos','Pré-Oitavas','Oitavas','Quartas','Semi','Terceiro Lugar','Final'];
 const PHASE_KEYS = ['Grupos','Pre-Oitavas','Oitavas','Quartas','Semi','Terceiro Lugar','Final'];
+const BONUS_EDIT_DEADLINE = new Date('2026-05-11T15:59:00-03:00');
 
 function isLocked(game) {
   return new Date() >= new Date(`${game.match_date}T${game.match_time}:00-03:00`);
@@ -17,13 +18,16 @@ function fmtDate(d) {
 }
 
 export default function MeusPalpites() {
-  const { api } = useAuth();
+  const { api, user, refreshUser } = useAuth();
   const [games, setGames] = useState([]);
   const [bets, setBets] = useState({});
   const [saved, setSaved] = useState({});
   const [anon, setAnon] = useState({});
   const [saving, setSaving] = useState({});
   const [msgs, setMsgs] = useState({});
+  const [bonus, setBonus] = useState({ champion:'', player:'', scorer:'' });
+  const [bonusSaving, setBonusSaving] = useState(false);
+  const [bonusMsg, setBonusMsg] = useState(null);
   const [phaseIdx, setPhaseIdx] = useState(0);
   const [loading, setLoading] = useState(true);
 
@@ -41,6 +45,36 @@ export default function MeusPalpites() {
   }, [api]);
 
   useEffect(() => { load(); }, [load]);
+
+  useEffect(() => {
+    if (!user) return;
+    setBonus({
+      champion: user.champion_pick || '',
+      player: user.best_player_pick || '',
+      scorer: user.top_scorer_pick || ''
+    });
+  }, [user]);
+
+  const bonusLocked = new Date() >= BONUS_EDIT_DEADLINE;
+
+  const saveBonus = async () => {
+    setBonusMsg(null);
+    setBonusSaving(true);
+    try {
+      await api('/api/me/bonus', { method:'PATCH', body: JSON.stringify({
+        champion_pick: bonus.champion,
+        best_player_pick: bonus.player,
+        top_scorer_pick: bonus.scorer
+      })});
+      await refreshUser();
+      setBonusMsg({ t:'success', text:'Palpites bônus salvos!' });
+      setTimeout(() => setBonusMsg(null), 2200);
+    } catch (e) {
+      setBonusMsg({ t:'error', text: e.message });
+    } finally {
+      setBonusSaving(false);
+    }
+  };
 
   const setScore = (gid, side, val) => {
     const v = val.replace(/\D/g,'').slice(0,2);
@@ -81,6 +115,41 @@ export default function MeusPalpites() {
       <p style={{ color:'var(--muted)', fontSize:'0.82rem', marginBottom:'20px' }}>
         Palpites bloqueados automaticamente no horário de início. Se não marcar "anônimo", seu palpite aparece público antes do jogo.
       </p>
+
+      <div className="card" style={{ marginBottom:'18px' }}>
+        <div style={{ display:'flex', justifyContent:'space-between', gap:'16px', alignItems:'center', flexWrap:'wrap' }}>
+          <div>
+            <h2 style={{ margin:'0 0 8px', fontSize:'1rem' }}>Palpites bônus</h2>
+            <p style={{ margin:0, color:'var(--muted)', fontSize:'0.82rem' }}>
+              Esses palpites especiais podem ser alterados até 11/05 às 15h59.
+            </p>
+          </div>
+          <span className={`badge ${bonusLocked ? 'badge-miss' : 'badge-p3'}`}>
+            {bonusLocked ? 'Bloqueado' : 'Aberto até 11/05'}
+          </span>
+        </div>
+
+        <div style={{ display:'grid', gap:'12px', marginTop:'14px' }}>
+          <div style={{ display:'grid', gap:'8px' }}>
+            <label className="label">Seleção campeã</label>
+            <input className="input" value={bonus.champion} onChange={e => setBonus(b => ({ ...b, champion: e.target.value }))} disabled={bonusLocked} placeholder="Ex: Brasil" />
+          </div>
+          <div style={{ display:'grid', gap:'8px' }}>
+            <label className="label">Melhor jogador</label>
+            <input className="input" value={bonus.player} onChange={e => setBonus(b => ({ ...b, player: e.target.value }))} disabled={bonusLocked} placeholder="Nome do jogador" />
+          </div>
+          <div style={{ display:'grid', gap:'8px' }}>
+            <label className="label">Artilheiro</label>
+            <input className="input" value={bonus.scorer} onChange={e => setBonus(b => ({ ...b, scorer: e.target.value }))} disabled={bonusLocked} placeholder="Nome do jogador" />
+          </div>
+          <div style={{ display:'flex', gap:'10px', alignItems:'center', flexWrap:'wrap' }}>
+            <button className="btn btn-lime btn-sm" onClick={saveBonus} disabled={bonusLocked || bonusSaving}>
+              {bonusSaving ? 'Salvando...' : 'Salvar palpites bônus'}
+            </button>
+            {bonusMsg && <span style={{ color: bonusMsg.t === 'success' ? 'var(--lime)' : 'var(--red)' }}>{bonusMsg.text}</span>}
+          </div>
+        </div>
+      </div>
 
       <div className="tabs">
         {PHASES.map((p, i) => (

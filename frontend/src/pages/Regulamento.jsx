@@ -40,7 +40,7 @@ export default function Regulamento() {
           <li>Palpites bloqueados automaticamente no horário de início de cada partida.</li>
           <li>Horários no fuso de Brasília (GMT-3).</li>
           <li>Palpite não enviado = 0 pontos na partida.</li>
-          <li>Palpites bônus são definitivos e não podem ser alterados após a ativação da conta.</li>
+          <li>Palpites bônus podem ser alterados até 11/05 às 15h59.</li>
           <li>Se não marcar "anônimo", seu palpite aparece público antes do jogo começar.</li>
           <li>Palpites anônimos só ficam visíveis após o apito inicial.</li>
           <li>Resultados inseridos manualmente pelo administrador.</li>

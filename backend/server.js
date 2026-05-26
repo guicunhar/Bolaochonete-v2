@@ -11,6 +11,7 @@ const { calculatePoints } = require('./scoring');
 const app = express();
 const PORT = process.env.PORT || 3001;
 const JWT_SECRET = process.env.JWT_SECRET || 'bolaochonete-2026-secret';
+const BONUS_EDIT_DEADLINE = new Date('2026-05-11T15:59:00-03:00');
 
 // Uploads dir
 const UPLOADS_DIR = path.join(__dirname, 'uploads');
@@ -48,6 +49,10 @@ function adminOnly(req, res, next) {
   next();
 }
 
+function isBonusEditClosed() {
+  return new Date() >= BONUS_EDIT_DEADLINE;
+}
+
 // ── AUTH ─────────────────────────────────────────────────────────────────────
 
 // First login: user pre-registered by admin, sets password + bonus picks
@@ -59,8 +64,9 @@ app.post('/api/first-login', (req, res) => {
   if (!password || password.length < 4) return res.status(400).json({ error: 'Senha mínima de 4 caracteres' });
 
   const hash = bcrypt.hashSync(password, 10);
-  db.prepare(`UPDATE users SET password_hash=?, is_precadastro=0, champion_pick=?, best_player_pick=?, top_scorer_pick=?, bonus_locked=1 WHERE id=?`)
-    .run(hash, champion_pick || null, best_player_pick || null, top_scorer_pick || null, user.id);
+  const bonusLocked = isBonusEditClosed() ? 1 : 0;
+  db.prepare(`UPDATE users SET password_hash=?, is_precadastro=0, champion_pick=?, best_player_pick=?, top_scorer_pick=?, bonus_locked=? WHERE id=?`)
+    .run(hash, champion_pick || null, best_player_pick || null, top_scorer_pick || null, bonusLocked, user.id);
 
   const token = jwt.sign({ id: user.id, username: user.username, name: user.name, is_admin: 0 }, JWT_SECRET, { expiresIn: '30d' });
   res.json({ token, user: { id: user.id, name: user.name, username: user.username, is_admin: false, avatar_path: user.avatar_path } });
@@ -77,8 +83,18 @@ app.post('/api/login', (req, res) => {
 });
 
 app.get('/api/me', auth, (req, res) => {
-  const user = db.prepare('SELECT id,name,username,is_admin,avatar_path,champion_pick,best_player_pick,top_scorer_pick,bonus_locked FROM users WHERE id=?').get(req.user.id);
-  res.json(user);
+  const user = db.prepare('SELECT id,name,username,is_admin,avatar_path,champion_pick,best_player_pick,top_scorer_pick FROM users WHERE id=?').get(req.user.id);
+  if (!user) return res.status(404).json({ error: 'Usuário não encontrado' });
+  const bonus_locked = isBonusEditClosed();
+  res.json({ ...user, bonus_locked });
+});
+
+app.patch('/api/me/bonus', auth, (req, res) => {
+  if (isBonusEditClosed()) return res.status(400).json({ error: 'Prazo para alterar palpites bônus encerrado' });
+  const { champion_pick, best_player_pick, top_scorer_pick } = req.body;
+  db.prepare(`UPDATE users SET champion_pick=?, best_player_pick=?, top_scorer_pick=? WHERE id=?`)
+    .run(champion_pick || null, best_player_pick || null, top_scorer_pick || null, req.user.id);
+  res.json({ ok: true });
 });
 
 // ── GAMES ─────────────────────────────────────────────────────────────────────

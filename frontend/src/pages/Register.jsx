@@ -76,7 +76,7 @@ export default function Register() {
               🏆 PALPITES ESPECIAIS
             </p>
             <p style={{ color: 'var(--text-dim)', fontSize: '0.82rem', marginBottom: '16px' }}>
-              Esses palpites valem pontos bônus ao final da Copa!
+              Esses palpites valem pontos bônus ao final da Copa e podem ser alterados até 11/05 às 15h59.
             </p>
 
             <div className="form-group">
