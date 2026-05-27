@@ -1,4 +1,4 @@
-import { createContext, useContext, useState, useEffect } from 'react';
+import { createContext, useContext, useState, useEffect, useCallback } from 'react';
 
 const Ctx = createContext(null);
 
@@ -7,14 +7,14 @@ export function AuthProvider({ children }) {
   const [token, setToken] = useState(() => localStorage.getItem('token'));
   const [loading, setLoading] = useState(true);
 
-  const api = async (url, opts = {}) => {
+  const api = useCallback(async (url, opts = {}) => {
     const r = await fetch(url, {
       ...opts,
       headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}`, ...opts.headers }
     });
     if (!r.ok) { const e = await r.json().catch(() => ({})); throw new Error(e.error || 'Erro'); }
     return r.json();
-  };
+  }, [token]);
 
   useEffect(() => {
     if (!token) { setLoading(false); return; }
