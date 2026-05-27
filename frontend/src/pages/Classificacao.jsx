@@ -34,6 +34,7 @@ export default function Classificacao() {
                 <th style={{ textAlign:'center' }}>Exatos</th>
                 <th style={{ textAlign:'center' }}>Parcial 3</th>
                 <th style={{ textAlign:'center' }}>Básico</th>
+                <th style={{ textAlign:'center' }}>Bônus</th>
                 <th>Pontos</th>
               </tr>
             </thead>
@@ -42,8 +43,8 @@ export default function Classificacao() {
                 <tr key={p.id} style={p.id === user?.id ? { background:'rgba(200,240,62,0.04)' } : {}}>
                   <td><div className={`rank-pos ${posClass[i]||''}`}>{i+1}</div></td>
                   <td>
-                    <div style={{ display:'flex', alignItems:'center', gap:'10px' }}>
-                      <Avatar src={p.avatar_path} name={p.name} size={34} />
+                    <div style={{ display:'flex', alignItems:'center', gap:'12px' }}>
+                      <Avatar src={p.avatar_path} name={p.name} size={44} />
                       <div>
                         <div style={{ fontWeight:600, fontSize:'0.9rem' }}>
                           {p.name}
@@ -56,6 +57,15 @@ export default function Classificacao() {
                   <td style={{ textAlign:'center' }}><span className="badge badge-exact">{p.exact}</span></td>
                   <td style={{ textAlign:'center' }}><span className="badge badge-p3">{p.partial3}</span></td>
                   <td style={{ textAlign:'center' }}><span className="badge badge-p1">{p.partial1}</span></td>
+                  <td style={{ textAlign:'center' }}>
+                    {p.bonus_points > 0 ? (
+                      <span style={{ fontSize:'0.8rem', fontWeight:700, color:'var(--lime)', background:'rgba(200,240,62,0.1)', padding:'2px 8px', borderRadius:'12px' }}>
+                        +{p.bonus_points}
+                      </span>
+                    ) : (
+                      <span style={{ color:'var(--muted2)', fontSize:'0.8rem' }}>—</span>
+                    )}
+                  </td>
                   <td className="rank-pts">{p.total_points}</td>
                 </tr>
               ))}
@@ -72,14 +82,36 @@ export default function Classificacao() {
           <div style={{ display:'grid', gridTemplateColumns:'repeat(auto-fill,minmax(240px,1fr))', gap:'10px' }}>
             {ranking.map(p => (
               <div key={p.id} className="card card-sm" style={{ display:'flex', gap:'12px', alignItems:'flex-start' }}>
-                <Avatar src={p.avatar_path} name={p.name} size={38} />
-                <div style={{ minWidth:0 }}>
+                <Avatar src={p.avatar_path} name={p.name} size={44} />
+                <div style={{ minWidth:0, flex:1 }}>
                   <div style={{ fontWeight:600, fontSize:'0.85rem', marginBottom:'6px' }}>{p.name}</div>
                   <div style={{ fontSize:'0.75rem', color:'var(--muted)', display:'flex', flexDirection:'column', gap:'3px' }}>
-                    {p.champion_pick && <span>Campeã: <strong style={{ color:'var(--white)' }}>{p.champion_pick}</strong></span>}
-                    {p.best_player_pick && <span>Melhor: <strong style={{ color:'var(--white)' }}>{p.best_player_pick}</strong></span>}
-                    {p.top_scorer_pick && <span>Artilheiro: <strong style={{ color:'var(--white)' }}>{p.top_scorer_pick}</strong></span>}
+                    {p.champion_pick && (
+                      <span>
+                        Campeã: <strong style={{ color:'var(--white)' }}>{p.champion_pick}</strong>
+                        {p.award_details?.champion && <span style={{ color:'var(--lime)', marginLeft:4, fontWeight:700 }}>+50</span>}
+                        {p.award_details?.champion_vice && <span style={{ color:'var(--yellow)', marginLeft:4, fontWeight:700 }}>+25</span>}
+                      </span>
+                    )}
+                    {p.best_player_pick && (
+                      <span>
+                        Melhor: <strong style={{ color:'var(--white)' }}>{p.best_player_pick}</strong>
+                        {p.award_details?.best_player && <span style={{ color:'var(--lime)', marginLeft:4, fontWeight:700 }}>+25</span>}
+                      </span>
+                    )}
+                    {p.top_scorer_pick && (
+                      <span>
+                        Artilheiro: <strong style={{ color:'var(--white)' }}>{p.top_scorer_pick}</strong>
+                        {p.award_details?.top_scorer && <span style={{ color:'var(--lime)', marginLeft:4, fontWeight:700 }}>+20</span>}
+                        {p.award_details?.top_scorer_partial && <span style={{ color:'var(--yellow)', marginLeft:4, fontWeight:700 }}>+10</span>}
+                      </span>
+                    )}
                   </div>
+                  {p.bonus_points > 0 && (
+                    <div style={{ marginTop:'6px', fontSize:'0.72rem', fontWeight:700, color:'var(--lime)' }}>
+                      Total bônus: +{p.bonus_points} pts
+                    </div>
+                  )}
                 </div>
               </div>
             ))}
