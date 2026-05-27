@@ -7,6 +7,15 @@ export function AuthProvider({ children }) {
   const [token, setToken] = useState(() => localStorage.getItem('token'));
   const [loading, setLoading] = useState(true);
 
+  const api = async (url, opts = {}) => {
+    const r = await fetch(url, {
+      ...opts,
+      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}`, ...opts.headers }
+    });
+    if (!r.ok) { const e = await r.json().catch(() => ({})); throw new Error(e.error || 'Erro'); }
+    return r.json();
+  };
+
   useEffect(() => {
     if (!token) { setLoading(false); return; }
     fetch('/api/me', { headers: { Authorization: `Bearer ${token}` } })
@@ -26,14 +35,6 @@ export function AuthProvider({ children }) {
   const refreshUser = async () => {
     const d = await api('/api/me');
     setUser(d);
-  };
-  const api = async (url, opts = {}) => {
-    const r = await fetch(url, {
-      ...opts,
-      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}`, ...opts.headers }
-    });
-    if (!r.ok) { const e = await r.json().catch(() => ({})); throw new Error(e.error || 'Erro'); }
-    return r.json();
   };
 
   return <Ctx.Provider value={{ user, token, login, logout, loading, api, refreshUser }}>{children}</Ctx.Provider>;

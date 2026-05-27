@@ -7,7 +7,7 @@ export default function Classificacao() {
   const [ranking, setRanking] = useState([]);
   const [loading, setLoading] = useState(true);
 
-  useEffect(() => { api('/api/ranking').then(setRanking).finally(() => setLoading(false)); }, []);
+  useEffect(() => { api('/api/ranking').then(setRanking).finally(() => setLoading(false)); }, [api]);
 
   if (loading) return <div className="spinner" />;
 

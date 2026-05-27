@@ -24,7 +24,7 @@ export default function Palpites() {
     Promise.all([api('/api/bets/all'), api('/api/games')])
       .then(([b,g]) => { setAllBets(b); setGames(g); })
       .finally(() => setLoading(false));
-  }, []);
+  }, [api]);
 
   const phase = PHASE_KEYS[phaseIdx];
   const phaseGames = games.filter(g => g.phase === phase);
