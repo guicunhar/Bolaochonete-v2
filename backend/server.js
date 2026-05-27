@@ -9,6 +9,8 @@ const { calculatePoints } = require('./scoring');
 const app = express();
 const PORT = process.env.PORT || 3001;
 const JWT_SECRET = process.env.JWT_SECRET || 'bolaochonete-2026-secret';
+// Até quando os palpites bônus podem ser editados (formato ISO com offset)
+const BONUS_EDIT_DEADLINE = process.env.BONUS_EDIT_DEADLINE || '2026-06-11T15:59:00-03:00';
 
 
 app.use(cors());
@@ -78,6 +80,30 @@ app.get('/api/me', auth, async (req, res) => {
       [req.user.id]
     );
     res.json(user);
+  } catch(e) { res.status(500).json({ error: e.message }); }
+});
+
+// Permite editar palpites bônus após ativação, até o prazo definido em BONUS_EDIT_DEADLINE
+app.put('/api/me/bonus', auth, async (req, res) => {
+  try {
+    const { champion_pick, best_player_pick, top_scorer_pick } = req.body;
+    const deadline = new Date(BONUS_EDIT_DEADLINE);
+    if (new Date() > deadline) return res.status(400).json({ error: 'Prazo para editar palpites bônus encerrado' });
+
+    const user = await get('SELECT * FROM users WHERE id=?', [req.user.id]);
+    if (!user) return res.status(404).json({ error: 'Usuário não encontrado' });
+    if (user.is_precadastro) return res.status(400).json({ error: 'Conta não ativada' });
+
+    await run(
+      `UPDATE users SET champion_pick=?, best_player_pick=?, top_scorer_pick=? WHERE id=?`,
+      [champion_pick || null, best_player_pick || null, top_scorer_pick || null, req.user.id]
+    );
+
+    const updated = await get(
+      'SELECT id,name,username,is_admin,avatar_path,champion_pick,best_player_pick,top_scorer_pick,bonus_locked FROM users WHERE id=?',
+      [req.user.id]
+    );
+    res.json(updated);
   } catch(e) { res.status(500).json({ error: e.message }); }
 });
 

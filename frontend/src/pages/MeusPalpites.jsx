@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useAuth } from '../contexts/AuthContext';
+import { TEAMS } from '../utils/teams';
 import Flag from '../components/Flag';
 
 const PHASES = ['Grupos','Pré-Oitavas','Oitavas','Quartas','Semi','Terceiro Lugar','Final'];
@@ -17,15 +18,24 @@ function fmtDate(d) {
 }
 
 export default function MeusPalpites() {
-  const { api } = useAuth();
+  const { api, user, refreshUser } = useAuth();
   const [games, setGames] = useState([]);
   const [bets, setBets] = useState({});
   const [saved, setSaved] = useState({});
   const [anon, setAnon] = useState({});
   const [saving, setSaving] = useState({});
   const [msgs, setMsgs] = useState({});
+  const [champion, setChampion] = useState('');
+  const [player, setPlayer] = useState('');
+  const [scorer, setScorer] = useState('');
+  const [bonusSaving, setBonusSaving] = useState(false);
+  const [bonusMsg, setBonusMsg] = useState('');
   const [phaseIdx, setPhaseIdx] = useState(0);
   const [loading, setLoading] = useState(true);
+
+  // Prazo para editar palpites bônus
+  const BONUS_DEADLINE = new Date('2026-06-11T15:59:00-03:00');
+  const canEditBonuses = new Date() <= BONUS_DEADLINE;
 
   const load = useCallback(async () => {
     const [g, b] = await Promise.all([api('/api/games'), api('/api/bets/mine')]);
@@ -41,6 +51,28 @@ export default function MeusPalpites() {
   }, [api]);
 
   useEffect(() => { load(); }, [load]);
+
+  // inicializa campos de palpites bônus a partir do usuário
+  useEffect(() => {
+    if (!user) return;
+    setChampion(user.champion_pick || '');
+    setPlayer(user.best_player_pick || '');
+    setScorer(user.top_scorer_pick || '');
+  }, [user]);
+
+  const saveBonus = async () => {
+    setBonusMsg('');
+    if (!canEditBonuses) return setBonusMsg('Prazo para editar palpites bônus encerrado');
+    setBonusSaving(true);
+    try {
+      const updated = await api('/api/me/bonus', { method: 'PUT', body: JSON.stringify({ champion_pick: champion || null, best_player_pick: player || null, top_scorer_pick: scorer || null }) });
+      await refreshUser();
+      setBonusMsg('Palpites bônus salvos');
+      setTimeout(() => setBonusMsg(''), 2500);
+    } catch(e) {
+      setBonusMsg(e.message);
+    } finally { setBonusSaving(false); }
+  };
 
   const setScore = (gid, side, val) => {
     const v = val.replace(/\D/g,'').slice(0,2);
@@ -81,6 +113,37 @@ export default function MeusPalpites() {
       <p style={{ color:'var(--muted)', fontSize:'0.82rem', marginBottom:'20px' }}>
         Palpites bloqueados automaticamente no horário de início. Se não marcar "anônimo", seu palpite aparece público antes do jogo.
       </p>
+
+      <div className="card" style={{ marginBottom: '18px' }}>
+        <h3 style={{ marginBottom: '6px' }}>Palpites Bônus</h3>
+        <p style={{ color:'var(--muted)', fontSize:'0.82rem', marginBottom:'10px' }}>
+          Você pode alterar seus palpites bônus até <strong>11/06 às 15:59</strong>.
+        </p>
+
+        <div style={{ display: 'grid', gap: '10px' }}>
+          <div className="form-group">
+            <label className="label">Seleção Campeã</label>
+            <select className="input" value={champion} onChange={e => setChampion(e.target.value)}>
+              <option value="">Escolha uma seleção...</option>
+              {TEAMS.map(t => <option key={t} value={t}>{t}</option>)}
+            </select>
+          </div>
+          <div className="form-group">
+            <label className="label">Melhor Jogador</label>
+            <input className="input" value={player} onChange={e => setPlayer(e.target.value)} placeholder="Nome do jogador..." />
+          </div>
+          <div className="form-group">
+            <label className="label">Artilheiro</label>
+            <input className="input" value={scorer} onChange={e => setScorer(e.target.value)} placeholder="Nome do jogador..." />
+          </div>
+
+          <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+            <button className="btn btn-lime btn-sm" onClick={saveBonus} disabled={!canEditBonuses || bonusSaving}>{bonusSaving ? 'Salvando...' : 'Salvar palpites bônus'}</button>
+            {!canEditBonuses && <span style={{ color:'var(--red)', fontWeight:700 }}>Prazo encerrado</span>}
+            {bonusMsg && <span style={{ marginLeft: '8px', color: bonusMsg.includes('salvo') ? 'var(--green)' : 'var(--red)' }}>{bonusMsg}</span>}
+          </div>
+        </div>
+      </div>
 
       <div className="tabs">
         {PHASES.map((p, i) => (
