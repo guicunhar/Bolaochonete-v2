@@ -3,6 +3,8 @@ const cors = require('cors');
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 const path = require('path');
+const fs = require('fs');
+const multer = require('multer');
 const { initializeDatabase, all, get, run } = require('./database');
 const { calculatePoints } = require('./scoring');
 

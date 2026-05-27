@@ -1,0 +1,115 @@
+[33mcommit 5eb0b53a7da0f4976b931501e101185b9e3fd932[m[33m ([m[1;36mHEAD[m[33m -> [m[1;32mmain[m[33m, [m[1;31morigin/main[m[33m, [m[1;31morigin/HEAD[m[33m)[m
+Merge: 2e115f0 6c00201
+Author: Guilherme Cunha <guilherme.c@ipiranga.ipiranga>
+Date:   Wed May 27 08:19:06 2026 -0300
+
+    Merge branch 'main' of https://github.com/guicunhar/Bolaochonete-v2
+
+[33mcommit 2e115f03f31f6a42eaba531672295f553bcd52d1[m
+Author: Guilherme Cunha <guilherme.c@ipiranga.ipiranga>
+Date:   Tue May 26 11:14:02 2026 -0300
+
+    permite cadastrar depois
+
+[33mcommit 6c002017f9a30529585baf44b7e41a3a1197da0d[m
+Author: GUILHERME CUNHA RIBEIRO <c2320951@COLOSSUS.LAB-GRAD>
+Date:   Thu May 21 16:08:14 2026 -0300
+
+    foto por url
+
+[33mcommit 00f3cdfc81a18b94303d9b0f61158571e4a579d8[m
+Author: GUILHERME CUNHA RIBEIRO <c2320951@COLOSSUS.LAB-GRAD>
+Date:   Thu May 21 15:53:38 2026 -0300
+
+    nova database
+
+[33mcommit 12fffbdccf46182fafcd0930b42a48eaa13c7768[m
+Author: GUILHERME CUNHA RIBEIRO <c2320951@COLOSSUS.LAB-GRAD>
+Date:   Thu May 21 15:36:14 2026 -0300
+
+    pontuação do bolao incial
+
+[33mcommit 1aa04b66d19420f2da521491302efe3e6cb290ab[m
+Author: Guilherme Cunha <guilherme.c@ipiranga.ipiranga>
+Date:   Wed May 20 10:51:22 2026 -0300
+
+    arruma bandeira
+
+[33mcommit b6d6dabc57cdf13d8b288bfee7c05d97824bc990[m
+Author: Guilherme Cunha <guilherme.c@ipiranga.ipiranga>
+Date:   Wed May 20 10:46:59 2026 -0300
+
+    corrige bugg
+
+[33mcommit 2f0ee09326d61296fbc80300b285c21fadb02735[m
+Author: Guilherme Cunha <guilherme.c@ipiranga.ipiranga>
+Date:   Wed May 20 10:40:50 2026 -0300
+
+    arruma identação 2
+
+[33mcommit 7915230c2fcb6c9f7c2dc8205e5c4ba770fbdab3[m
+Author: Guilherme Cunha <guilherme.c@ipiranga.ipiranga>
+Date:   Wed May 20 10:34:02 2026 -0300
+
+    corrige palpites
+
+[33mcommit 576ca1d95099864bde238eceefbf91648c63e1db[m
+Author: Guilherme Cunha <guilherme.c@ipiranga.ipiranga>
+Date:   Wed May 20 10:28:55 2026 -0300
+
+    arruma identação
+
+[33mcommit 7ab0f09d72dd2cc65c4ae089b63e647a5c3e3313[m
+Author: Guilherme Cunha <guilherme.c@ipiranga.ipiranga>
+Date:   Wed May 20 10:25:01 2026 -0300
+
+    tenta mudar o css
+
+[33mcommit 9b8d818f74baea723afc70008231e86891145e12[m
+Author: Guilherme Cunha <guilherme.c@ipiranga.ipiranga>
+Date:   Wed May 20 10:18:09 2026 -0300
+
+    muda admin
+
+[33mcommit 91d72823298642dab7e2b48afeca5a5102581bcc[m
+Author: Guilherme Cunha <guilherme.c@ipiranga.ipiranga>
+Date:   Wed May 20 10:16:08 2026 -0300
+
+    corrige seleções
+
+[33mcommit e93d89c5741bd11649f9873eb2a86f790ed11e39[m
+Author: Guilherme Cunha <guilherme.c@ipiranga.ipiranga>
+Date:   Wed May 20 10:03:50 2026 -0300
+
+    mudanças 2
+
+[33mcommit 76dfaa96ee69740978710a09ac5332ad1fea5b58[m
+Author: Guilherme Cunha <guilherme.c@ipiranga.ipiranga>
+Date:   Wed May 20 09:48:47 2026 -0300
+
+    mudanças
+
+[33mcommit 87456b5289bb9cdddf2fb6e289cfb6cf231d2cd3[m
+Author: Guilherme Cunha <guilherme.c@ipiranga.ipiranga>
+Date:   Wed May 20 09:28:11 2026 -0300
+
+    corrig ebugs
+
+[33mcommit fe07e75f5d975831df7f0f19cd12245171eaee64[m
+Merge: e7d43ea e12718e
+Author: Guilherme Cunha <guilherme.c@ipiranga.ipiranga>
+Date:   Wed May 20 09:14:37 2026 -0300
+
+    merging
+
+[33mcommit e12718e93ba0855568eed1e1d76438b65cd73a1a[m[33m ([m[1;31morigin/master[m[33m, [m[1;32mmaster[m[33m)[m
+Author: Guilherme Cunha <guilherme.c@ipiranga.ipiranga>
+Date:   Wed May 20 09:10:10 2026 -0300
+
+    first commit
+
+[33mcommit e7d43eaec249259223bf2c16335fc01f069fc807[m
+Author: Guilherme Cunha Ribeiro <guicunhar@outlook.com>
+Date:   Wed May 20 09:08:26 2026 -0300
+
+    Initial commit
