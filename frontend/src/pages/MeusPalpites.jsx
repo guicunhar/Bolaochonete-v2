@@ -4,7 +4,7 @@ import Flag from '../components/Flag';
 
 const PHASES = ['Grupos','Pré-Oitavas','Oitavas','Quartas','Semi','Terceiro Lugar','Final'];
 const PHASE_KEYS = ['Grupos','Pre-Oitavas','Oitavas','Quartas','Semi','Terceiro Lugar','Final'];
-const BONUS_EDIT_DEADLINE = new Date('2026-05-11T15:59:00-03:00');
+const BONUS_EDIT_DEADLINE = new Date('2026-06-11T15:59:00-03:00');
 
 function isLocked(game) {
   return new Date() >= new Date(`${game.match_date}T${game.match_time}:00-03:00`);
@@ -125,7 +125,7 @@ export default function MeusPalpites() {
             </p>
           </div>
           <span className={`badge ${bonusLocked ? 'badge-miss' : 'badge-p3'}`}>
-            {bonusLocked ? 'Bloqueado' : 'Aberto até 11/05'}
+            {bonusLocked ? 'Bloqueado' : 'Aberto até 11/06 15h59'}
           </span>
         </div>
 
