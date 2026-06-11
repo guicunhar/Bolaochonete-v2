@@ -11,7 +11,7 @@ const { calculatePoints } = require('./scoring');
 const app = express();
 const PORT = process.env.PORT || 3001;
 const JWT_SECRET = process.env.JWT_SECRET || 'bolaochonete-2026-secret';
-const BONUS_EDIT_DEADLINE = new Date('2026-05-11T15:59:00-03:00');
+const BONUS_EDIT_DEADLINE = new Date('2026-06-11T15:59:00-03:00');
 
 // Uploads dir
 const UPLOADS_DIR = path.join(__dirname, 'uploads');
