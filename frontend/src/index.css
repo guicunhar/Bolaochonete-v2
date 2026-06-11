@@ -231,7 +231,7 @@ input, select, textarea { font-family: inherit; }
   text-transform: uppercase; letter-spacing: 0.08em;
   border-bottom: 1px solid var(--border);
 }
-.rank-table th:last-child { text-align: right; }
+.rank-table th:last-child { text-align: center; }
 .rank-table td { padding: 12px 14px; border-bottom: 1px solid var(--border); }
 .rank-table tr:last-child td { border-bottom: none; }
 .rank-table tr:hover td { background: rgba(255,255,255,0.015); }
@@ -244,7 +244,7 @@ input, select, textarea { font-family: inherit; }
 .rank-pos.p2 { color: #c0c0c0; }
 .rank-pos.p3 { color: #cd7f32; }
 
-.rank-pts { font-family: 'Outfit', sans-serif; font-size: 1.5rem; font-weight: 800; color: var(--lime); text-align: right; }
+.rank-pts { font-family: 'Outfit', sans-serif; font-size: 1.5rem; font-weight: 800; color: var(--lime); text-align: right; white-space: nowrap; }
 
 /* ── AVATAR ───────────────────────────────────────────────────── */
 .avatar {
