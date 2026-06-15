@@ -234,27 +234,6 @@ export default function Estatisticas() {
             )}
           </Section>
 
-          {/* Pior amigo */}
-          {data.worstFriends?.length > 0 && (
-            <div className="stats-section">
-              <h3 className="stats-section-title">😤 Pior Amigo do Bolão</h3>
-              <p className="stats-section-desc">Top 3 pessoas com os palpites mais diferentes</p>
-              <div className="stats-friends">
-                {data.worstFriends.map((f, i) => (
-                  <div key={f.id} className="stats-friend-card">
-                    <div className="stats-friend-rank" style={{ color: 'var(--red)' }}>#{i + 1}</div>
-                    <Avatar src={f.avatar_path} name={f.name} size={44} />
-                    <div className="stats-friend-info">
-                      <div className="stats-friend-name">{f.name}</div>
-                      <div className="stats-friend-meta">{f.shared} jogos comparados</div>
-                    </div>
-                    <button className="btn btn-ghost btn-sm" onClick={() => setSelectedId(f.id)}>Ver stats</button>
-                  </div>
-                ))}
-              </div>
-            </div>
-          )}
-
           {/* Tabela por tipo de palpite */}
           {data.betTypeTable && (
             <div className="stats-section">
@@ -293,7 +272,7 @@ export default function Estatisticas() {
           {data.bestFriends.length > 0 && (
             <div className="stats-section">
               <h3 className="stats-section-title">🤝 Melhor Amigo do Bolão</h3>
-              <p className="stats-section-desc">Top 3 pessoas com os palpites mais parecidos (placar idêntico vale mais)</p>
+              <p className="stats-section-desc">Top 3 pessoas com os palpites mais parecidos</p>
               <div className="stats-friends">
                 {data.bestFriends.map((f, i) => (
                   <div key={f.id} className="stats-friend-card">
@@ -311,6 +290,27 @@ export default function Estatisticas() {
                     >
                       Ver stats
                     </button>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* Pior amigo */}
+          {data.worstFriends?.length > 0 && (
+            <div className="stats-section">
+              <h3 className="stats-section-title">😤 Pior Amigo do Bolão</h3>
+              <p className="stats-section-desc">Top 3 pessoas com os palpites mais diferentes</p>
+              <div className="stats-friends">
+                {data.worstFriends.map((f, i) => (
+                  <div key={f.id} className="stats-friend-card">
+                    <div className="stats-friend-rank" style={{ color: 'var(--red)' }}>#{i + 1}</div>
+                    <Avatar src={f.avatar_path} name={f.name} size={44} />
+                    <div className="stats-friend-info">
+                      <div className="stats-friend-name">{f.name}</div>
+                      <div className="stats-friend-meta">{f.shared} jogos comparados</div>
+                    </div>
+                    <button className="btn btn-ghost btn-sm" onClick={() => setSelectedId(f.id)}>Ver stats</button>
                   </div>
                 ))}
               </div>
