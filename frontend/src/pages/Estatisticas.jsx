@@ -91,7 +91,7 @@ export default function Estatisticas() {
             <div>
               <div className="stats-user-name">{data.user.name}</div>
               <div className="stats-user-meta">
-                {data.stats.totalBets} palpites registrados · {data.stats.totalFinished} jogos encerrados
+                {data.stats.totalFinished} jogos palpitados já encerrados
               </div>
             </div>
           </div>
@@ -155,7 +155,7 @@ export default function Estatisticas() {
               icon="💎"
               label="Palpite raro"
               value={data.stats.rareCount}
-              sub="Placar chutado por menos de 3 pessoas"
+              sub="Vencedor escolhido por menos de 3 pessoas"
               color="var(--yellow)"
             />
             <StatCard
@@ -202,6 +202,40 @@ export default function Estatisticas() {
             )}
           </Section>
 
+          {/* Tabela por tipo de palpite */}
+          {data.betTypeTable && (
+            <div className="stats-section">
+              <h3 className="stats-section-title">📋 Desempenho por Tipo de Palpite</h3>
+              <p className="stats-section-desc">Baseado no que você chutou (2x0 e 0x2 contam igual)</p>
+              <div className="card" style={{ padding: 0, overflowX: 'auto' }}>
+                <table className="bet-type-table">
+                  <thead>
+                    <tr>
+                      <th>Tipo de palpite</th>
+                      <th>Total</th>
+                      <th style={{ color: 'var(--green)' }}>Exatos</th>
+                      <th style={{ color: 'var(--yellow)' }}>Parc 3</th>
+                      <th style={{ color: 'var(--blue)' }}>Básico</th>
+                      <th style={{ color: 'var(--red)' }}>Erro</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {data.betTypeTable.map(row => (
+                      <tr key={row.key}>
+                        <td className="bet-type-label">{row.label}</td>
+                        <td>{row.total}</td>
+                        <td style={{ color: 'var(--green)', fontWeight: 700 }}>{row.exatos || '—'}</td>
+                        <td style={{ color: 'var(--yellow)', fontWeight: 700 }}>{row.parc3 || '—'}</td>
+                        <td style={{ color: 'var(--blue)', fontWeight: 700 }}>{row.basico || '—'}</td>
+                        <td style={{ color: 'var(--red)', fontWeight: 700 }}>{row.erro || '—'}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          )}
+
           {/* Melhor amigo */}
           {data.bestFriends.length > 0 && (
             <div className="stats-section">
@@ -215,7 +249,7 @@ export default function Estatisticas() {
                     <div className="stats-friend-info">
                       <div className="stats-friend-name">{f.name}</div>
                       <div className="stats-friend-meta">
-                        Afinidade: <strong>{f.similarity}</strong> pts em {f.shared} jogos
+                        {f.shared} jogos comparados
                       </div>
                     </div>
                     <button

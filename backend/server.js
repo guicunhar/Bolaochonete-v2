@@ -458,10 +458,12 @@ app.get('/api/stats/:userId', auth, async (req, res) => {
     // ── Goleadas chutadas (diferença 3+ gols) ──
     const thrashingsBet = finishedBets.filter(b => Math.abs(b.home_score - b.away_score) >= 3).length;
 
-    // ── Placar favorito ──
+    // ── Placar favorito (2x1 e 1x2 contam como mesmo placar) ──
     const scoreCounts = {};
     for (const b of finishedBets) {
-      const key = `${b.home_score}x${b.away_score}`;
+      const lo = Math.min(b.home_score, b.away_score);
+      const hi = Math.max(b.home_score, b.away_score);
+      const key = `${hi}x${lo}`;
       scoreCounts[key] = (scoreCounts[key] || 0) + 1;
     }
     let favoriteScore = null;
@@ -490,9 +492,8 @@ app.get('/api/stats/:userId', auth, async (req, res) => {
       // O único (único com esse vencedor)
       if (winnerCounts[myWinner] === 1) theOnlyOne++;
 
-      // Raro: menos de 3 pessoas com o mesmo placar exato
-      const exactCount = gameBets.filter(gb => gb.home_score === b.home_score && gb.away_score === b.away_score).length;
-      if (exactCount <= 2) rareCount++;
+      // Raro: menos de 3 pessoas escolheram o mesmo vencedor (ou empate)
+      if (winnerCounts[myWinner] <= 2) rareCount++;
     }
     const followerPct = followerTotal > 0 ? Math.round((followerCount / followerTotal) * 100) : 0;
 
@@ -525,14 +526,32 @@ app.get('/api/stats/:userId', auth, async (req, res) => {
       if (s.misses > cursedTeamMisses) { cursedTeam = team; cursedTeamMisses = s.misses; }
     }
 
+    // ── Tabela por tipo de palpite ──
+    const betTypes = [
+      { key: 'empate',   label: 'Empate',            test: b => b.home_score === b.away_score },
+      { key: 'diff1',    label: 'Diferença de 1 gol', test: b => Math.abs(b.home_score - b.away_score) === 1 },
+      { key: 'diff2',    label: 'Diferença de 2 gols',test: b => Math.abs(b.home_score - b.away_score) === 2 },
+      { key: 'diff3',    label: 'Diferença de 3+ gols',test: b => Math.abs(b.home_score - b.away_score) >= 3 },
+      { key: 'ambasmarcam', label: 'Ambas marcam',   test: b => Math.min(b.home_score, b.away_score) >= 1 },
+    ];
+    const betTypeTable = betTypes.map(({ key, label, test }) => {
+      const subset = finishedBets.filter(test);
+      const total = subset.length;
+      const exatos = subset.filter(b => calculatePoints(b.home_score, b.away_score, b.rh, b.ra) === 5).length;
+      const parc3  = subset.filter(b => calculatePoints(b.home_score, b.away_score, b.rh, b.ra) === 3).length;
+      const basico = subset.filter(b => calculatePoints(b.home_score, b.away_score, b.rh, b.ra) === 1).length;
+      const erro   = subset.filter(b => calculatePoints(b.home_score, b.away_score, b.rh, b.ra) === 0).length;
+      return { key, label, total, exatos, parc3, basico, erro };
+    });
+
     // ── Melhor amigo ──
     const allUsers = await all('SELECT id,name,username,avatar_path FROM users WHERE is_admin=0 AND is_precadastro=0 AND id!=?', [targetId]);
     const myBetsByGame = {};
-    for (const b of myBets) myBetsByGame[b.game_id] = b;
+    for (const b of finishedBets) myBetsByGame[b.game_id] = b;
 
     const friendScores = [];
     for (const u of allUsers) {
-      const theirBets = allBets.filter(b => b.user_id === u.id);
+      const theirBets = allBets.filter(b => b.user_id === u.id && b.rh !== null && b.ra !== null);
       let score = 0, shared = 0;
       for (const tb of theirBets) {
         const mine = myBetsByGame[tb.game_id];
@@ -573,6 +592,7 @@ app.get('/api/stats/:userId', auth, async (req, res) => {
         totalBets: myBets.length,
       },
       bestFriends,
+      betTypeTable,
     });
   } catch(e) { res.status(500).json({ error: e.message }); }
 });
