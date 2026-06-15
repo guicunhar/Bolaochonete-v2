@@ -400,6 +400,190 @@ app.get('/api/admin/bonus-awards', auth, adminOnly, async (req, res) => {
   } catch(e) { res.status(500).json({ error: e.message }); }
 });
 
+// ── STATS ─────────────────────────────────────────────────────────────────────
+
+app.get('/api/stats/:userId', auth, async (req, res) => {
+  try {
+    const targetId = Number(req.params.userId);
+    const targetUser = await get('SELECT id,name,username,avatar_path FROM users WHERE id=? AND is_admin=0 AND is_precadastro=0', [targetId]);
+    if (!targetUser) return res.status(404).json({ error: 'Usuário não encontrado' });
+
+    // Palpites do usuário alvo, com info do jogo
+    const myBets = await all(`
+      SELECT b.*, g.home_team, g.away_team, g.home_flag, g.away_flag,
+             g.home_score as rh, g.away_score as ra, g.match_date, g.match_time
+      FROM bets b JOIN games g ON b.game_id = g.id
+      WHERE b.user_id = ?
+      ORDER BY g.match_date, g.match_time
+    `, [targetId]);
+
+    // Todos os palpites de todos os usuários (jogos encerrados apenas para comparação de grupo)
+    const allBets = await all(`
+      SELECT b.user_id, b.game_id, b.home_score, b.away_score,
+             g.home_score as rh, g.away_score as ra
+      FROM bets b JOIN games g ON b.game_id = g.id
+      JOIN users u ON b.user_id = u.id
+      WHERE u.is_admin=0 AND u.is_precadastro=0
+    `);
+
+    // Agrupar todos os palpites por jogo
+    const betsByGame = {};
+    for (const b of allBets) {
+      if (!betsByGame[b.game_id]) betsByGame[b.game_id] = [];
+      betsByGame[b.game_id].push(b);
+    }
+
+    // Jogos com resultado
+    const finishedBets = myBets.filter(b => b.rh !== null && b.ra !== null);
+
+    // ── Por 1 gol ──
+    let missedByOneGoal = 0;
+    for (const b of finishedBets) {
+      const pts = calculatePoints(b.home_score, b.away_score, b.rh, b.ra);
+      if (pts < 5) {
+        const diffH = Math.abs(b.home_score - b.rh);
+        const diffA = Math.abs(b.away_score - b.ra);
+        if ((diffH === 1 && diffA === 0) || (diffH === 0 && diffA === 1) || (diffH === 1 && diffA === 1)) {
+          missedByOneGoal++;
+        }
+      }
+    }
+
+    // ── Empates chutados ──
+    const drawsBet = myBets.filter(b => b.home_score === b.away_score).length;
+
+    // ── Corajoso (4+ gols na partida chutada) ──
+    const boldBets = myBets.filter(b => (b.home_score + b.away_score) >= 4).length;
+
+    // ── Goleadas chutadas (diferença 3+ gols) ──
+    const thrashingsBet = myBets.filter(b => Math.abs(b.home_score - b.away_score) >= 3).length;
+
+    // ── Placar favorito ──
+    const scoreCounts = {};
+    for (const b of myBets) {
+      const key = `${b.home_score}x${b.away_score}`;
+      scoreCounts[key] = (scoreCounts[key] || 0) + 1;
+    }
+    let favoriteScore = null;
+    let favoriteScoreCount = 0;
+    for (const [score, count] of Object.entries(scoreCounts)) {
+      if (count > favoriteScoreCount) { favoriteScore = score; favoriteScoreCount = count; }
+    }
+
+    // ── Contra a maioria / O único / Raro / Seguidor ──
+    let againstMajority = 0, theOnlyOne = 0, rareCount = 0, followerCount = 0, followerTotal = 0;
+    for (const b of finishedBets) {
+      const gameBets = betsByGame[b.game_id] || [];
+      if (gameBets.length < 2) continue;
+
+      const winner = (score) => score.home_score > score.away_score ? 'h' : score.home_score < score.away_score ? 'a' : 'd';
+      const myWinner = winner(b);
+
+      // Contagem de vencedores
+      const winnerCounts = { h: 0, a: 0, d: 0 };
+      for (const gb of gameBets) winnerCounts[winner(gb)]++;
+      const majorityWinner = Object.entries(winnerCounts).sort((a, b) => b[1] - a[1])[0][0];
+      if (myWinner !== majorityWinner) againstMajority++;
+      if (myWinner === majorityWinner) { followerCount++; }
+      followerTotal++;
+
+      // O único (único com esse vencedor)
+      if (winnerCounts[myWinner] === 1) theOnlyOne++;
+
+      // Raro: menos de 3 pessoas com o mesmo placar exato
+      const exactCount = gameBets.filter(gb => gb.home_score === b.home_score && gb.away_score === b.away_score).length;
+      if (exactCount <= 2) rareCount++;
+    }
+    const followerPct = followerTotal > 0 ? Math.round((followerCount / followerTotal) * 100) : 0;
+
+    // ── Melhor sequência / Pior sequência ──
+    let bestStreak = 0, worstStreak = 0, curBest = 0, curWorst = 0;
+    for (const b of finishedBets) {
+      const pts = calculatePoints(b.home_score, b.away_score, b.rh, b.ra);
+      if (pts > 0) { curBest++; curWorst = 0; }
+      else { curWorst++; curBest = 0; }
+      if (curBest > bestStreak) bestStreak = curBest;
+      if (curWorst > worstStreak) worstStreak = curWorst;
+    }
+
+    // ── Time favorito / Time maldito ──
+    const teamStats = {};
+    for (const b of finishedBets) {
+      const pts = calculatePoints(b.home_score, b.away_score, b.rh, b.ra);
+      for (const team of [b.home_team, b.away_team]) {
+        if (!teamStats[team]) teamStats[team] = { points: 0, games: 0, misses: 0 };
+        teamStats[team].games++;
+        teamStats[team].points += pts;
+        if (pts === 0) teamStats[team].misses++;
+      }
+    }
+    let favoriteTeam = null, favoriteTeamPoints = -1;
+    let cursedTeam = null, cursedTeamMisses = -1;
+    for (const [team, s] of Object.entries(teamStats)) {
+      if (s.games < 2) continue;
+      if (s.points > favoriteTeamPoints) { favoriteTeam = team; favoriteTeamPoints = s.points; }
+      if (s.misses > cursedTeamMisses) { cursedTeam = team; cursedTeamMisses = s.misses; }
+    }
+
+    // ── Melhor amigo ──
+    const allUsers = await all('SELECT id,name,username,avatar_path FROM users WHERE is_admin=0 AND is_precadastro=0 AND id!=?', [targetId]);
+    const myBetsByGame = {};
+    for (const b of myBets) myBetsByGame[b.game_id] = b;
+
+    const friendScores = [];
+    for (const u of allUsers) {
+      const theirBets = allBets.filter(b => b.user_id === u.id);
+      let score = 0, shared = 0;
+      for (const tb of theirBets) {
+        const mine = myBetsByGame[tb.game_id];
+        if (!mine) continue;
+        shared++;
+        if (mine.home_score === tb.home_score && mine.away_score === tb.away_score) score += 2;
+        else {
+          const myW = mine.home_score > mine.away_score ? 'h' : mine.home_score < mine.away_score ? 'a' : 'd';
+          const thW = tb.home_score > tb.away_score ? 'h' : tb.home_score < tb.away_score ? 'a' : 'd';
+          if (myW === thW) score += 1;
+        }
+      }
+      if (shared > 0) friendScores.push({ ...u, similarity: score, shared });
+    }
+    friendScores.sort((a, b) => b.similarity - a.similarity);
+    const bestFriends = friendScores.slice(0, 3);
+
+    res.json({
+      user: targetUser,
+      stats: {
+        missedByOneGoal,
+        drawsBet,
+        boldBets,
+        thrashingsBet,
+        favoriteScore,
+        favoriteScoreCount,
+        againstMajority,
+        theOnlyOne,
+        rareCount,
+        followerPct,
+        bestStreak,
+        worstStreak,
+        favoriteTeam,
+        favoriteTeamPoints,
+        cursedTeam,
+        cursedTeamMisses,
+        totalFinished: finishedBets.length,
+        totalBets: myBets.length,
+      },
+      bestFriends,
+    });
+  } catch(e) { res.status(500).json({ error: e.message }); }
+});
+
+app.get('/api/users/list', auth, async (req, res) => {
+  try {
+    const users = await all('SELECT id,name,username,avatar_path FROM users WHERE is_admin=0 AND is_precadastro=0 ORDER BY name');
+    res.json(users);
+  } catch(e) { res.status(500).json({ error: e.message }); }
+});
+
 // SPA fallback
 app.get('*', (req, res) => {
   res.sendFile(path.join(FRONTEND_DIST, 'index.html'));

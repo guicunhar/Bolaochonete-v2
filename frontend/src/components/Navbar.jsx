@@ -6,6 +6,7 @@ const links = [
   { to: '/classificacao', label: 'Classificação', icon: '🏆' },
   { to: '/palpites', label: 'Palpites', icon: '👀' },
   { to: '/meus-palpites', label: 'Meus Palpites', icon: '✏' },
+  { to: '/estatisticas', label: 'Estatísticas', icon: '📊' },
   { to: '/regulamento', label: 'Regulamento', icon: '📋' },
 ];
 

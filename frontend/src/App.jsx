@@ -8,6 +8,7 @@ import MeusPalpites from './pages/MeusPalpites';
 import Palpites from './pages/Palpites';
 import Regulamento from './pages/Regulamento';
 import Admin from './pages/Admin';
+import Estatisticas from './pages/Estatisticas';
 
 function Guard({ children, adminOnly = false }) {
   const { user, loading } = useAuth();
@@ -37,6 +38,7 @@ function AppRoutes() {
       <Route path="/palpites" element={<Guard><Layout><Palpites /></Layout></Guard>} />
       <Route path="/meus-palpites" element={<Guard><Layout><MeusPalpites /></Layout></Guard>} />
       <Route path="/regulamento" element={<Guard><Layout><Regulamento /></Layout></Guard>} />
+      <Route path="/estatisticas" element={<Guard><Layout><Estatisticas /></Layout></Guard>} />
       <Route path="/admin" element={<Guard adminOnly><Layout><Admin /></Layout></Guard>} />
       <Route path="*" element={<Navigate to={user ? '/classificacao' : '/login'} />} />
     </Routes>

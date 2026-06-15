@@ -313,6 +313,66 @@ input, select, textarea { font-family: inherit; }
 }
 .admin-input:focus { outline: none; border-color: var(--lime); }
 
+/* ── ESTATÍSTICAS ──────────────────────────────────────────── */
+.stats-page { display: flex; flex-direction: column; gap: 32px; }
+
+.stats-header { margin-bottom: 4px; }
+.stats-title { font-size: 1.8rem; font-weight: 800; }
+.stats-subtitle { color: var(--muted); font-size: 0.9rem; margin-top: 4px; }
+
+.stats-user-selector {
+  display: flex; flex-wrap: wrap; gap: 8px;
+}
+.stats-user-pill {
+  display: flex; align-items: center; gap: 7px;
+  background: var(--card); border: 1px solid var(--border);
+  border-radius: 999px; padding: 6px 12px 6px 6px;
+  color: var(--muted); font-size: 0.82rem; font-weight: 600;
+  transition: all 0.15s;
+}
+.stats-user-pill:hover { border-color: var(--border2); color: var(--white); }
+.stats-user-pill.active { border-color: var(--lime); color: var(--lime); background: rgba(200,240,62,0.06); }
+
+.stats-user-header {
+  display: flex; align-items: center; gap: 14px;
+  background: var(--card); border: 1px solid var(--border);
+  border-radius: var(--radius); padding: 16px 20px;
+}
+.stats-user-name { font-size: 1.1rem; font-weight: 700; }
+.stats-user-meta { color: var(--muted); font-size: 0.82rem; margin-top: 2px; }
+
+.stats-section { display: flex; flex-direction: column; gap: 12px; }
+.stats-section-title { font-size: 1rem; font-weight: 700; color: var(--white); }
+.stats-section-desc { font-size: 0.82rem; color: var(--muted); margin-top: -8px; }
+.stats-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+  gap: 12px;
+}
+
+.stat-card {
+  background: var(--card); border: 1px solid var(--border);
+  border-radius: var(--radius); padding: 18px 16px;
+  display: flex; flex-direction: column; gap: 4px;
+  transition: border-color 0.15s;
+}
+.stat-card:hover { border-color: var(--border2); }
+.stat-icon { font-size: 1.3rem; margin-bottom: 4px; }
+.stat-value { font-size: 1.6rem; font-weight: 800; line-height: 1; }
+.stat-label { font-size: 0.8rem; font-weight: 600; color: var(--white); margin-top: 2px; }
+.stat-sub { font-size: 0.72rem; color: var(--muted); margin-top: 2px; }
+
+.stats-friends { display: flex; flex-direction: column; gap: 10px; }
+.stats-friend-card {
+  display: flex; align-items: center; gap: 12px;
+  background: var(--card); border: 1px solid var(--border);
+  border-radius: var(--radius); padding: 14px 16px;
+}
+.stats-friend-rank { font-size: 1.1rem; font-weight: 800; color: var(--lime); min-width: 28px; }
+.stats-friend-info { flex: 1; }
+.stats-friend-name { font-size: 0.92rem; font-weight: 600; }
+.stats-friend-meta { font-size: 0.78rem; color: var(--muted); margin-top: 2px; }
+
 /* ── RESPONSIVE ────────────────────────────────────────────── */
 @media(max-width:768px) {
   .page { padding: 16px 12px 60px; }
