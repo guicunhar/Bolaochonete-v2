@@ -450,17 +450,17 @@ app.get('/api/stats/:userId', auth, async (req, res) => {
     }
 
     // ── Empates chutados ──
-    const drawsBet = myBets.filter(b => b.home_score === b.away_score).length;
+    const drawsBet = finishedBets.filter(b => b.home_score === b.away_score).length;
 
     // ── Corajoso (4+ gols na partida chutada) ──
-    const boldBets = myBets.filter(b => (b.home_score + b.away_score) >= 4).length;
+    const boldBets = finishedBets.filter(b => (b.home_score + b.away_score) >= 4).length;
 
     // ── Goleadas chutadas (diferença 3+ gols) ──
-    const thrashingsBet = myBets.filter(b => Math.abs(b.home_score - b.away_score) >= 3).length;
+    const thrashingsBet = finishedBets.filter(b => Math.abs(b.home_score - b.away_score) >= 3).length;
 
     // ── Placar favorito ──
     const scoreCounts = {};
-    for (const b of myBets) {
+    for (const b of finishedBets) {
       const key = `${b.home_score}x${b.away_score}`;
       scoreCounts[key] = (scoreCounts[key] || 0) + 1;
     }

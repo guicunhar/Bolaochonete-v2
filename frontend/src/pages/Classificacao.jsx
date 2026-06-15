@@ -2,9 +2,50 @@ import { useState, useEffect, useCallback } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import Avatar from '../components/Avatar';
 
-function exportRankingImage(ranking) {
+function loadImage(src) {
+  return new Promise(resolve => {
+    const img = new Image();
+    img.crossOrigin = 'anonymous';
+    img.onload = () => resolve(img);
+    img.onerror = () => resolve(null);
+    img.src = src;
+  });
+}
+
+function drawAvatarCircle(ctx, img, name, cx, cy, r) {
+  ctx.save();
+  ctx.beginPath();
+  ctx.arc(cx, cy, r, 0, Math.PI * 2);
+  ctx.clip();
+
+  if (img) {
+    ctx.drawImage(img, cx - r, cy - r, r * 2, r * 2);
+  } else {
+    // initials fallback
+    const colors = ['#3b82f6','#8b5cf6','#ec4899','#f97316','#22c55e','#14b8a6','#eab308'];
+    const seed = name.charCodeAt(0) + (name.charCodeAt(1) || 0);
+    ctx.fillStyle = colors[seed % colors.length];
+    ctx.fillRect(cx - r, cy - r, r * 2, r * 2);
+    ctx.fillStyle = '#ffffff';
+    ctx.font = `bold ${r * 0.85}px Outfit, sans-serif`;
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.fillText((name[0] || '?').toUpperCase(), cx, cy);
+  }
+
+  ctx.restore();
+  ctx.textBaseline = 'alphabetic';
+}
+
+async function exportRankingImage(ranking) {
+  // Pre-load all avatars
+  const avatars = await Promise.all(
+    ranking.map(p => p.avatar_path ? loadImage(p.avatar_path) : Promise.resolve(null))
+  );
+
   const dpr = window.devicePixelRatio || 1;
-  const W = 700, ROW_H = 56, HEADER_H = 100, FOOTER_H = 36;
+  const W = 700, ROW_H = 60, HEADER_H = 100, FOOTER_H = 36;
+  const AVATAR_R = 18, AVATAR_X = 80, NAME_X = AVATAR_X + AVATAR_R + 10;
   const H = HEADER_H + ranking.length * ROW_H + FOOTER_H;
   const canvas = document.createElement('canvas');
   canvas.width = W * dpr;
@@ -21,6 +62,7 @@ function exportRankingImage(ranking) {
   // header
   ctx.fillStyle = '#C8F03E';
   ctx.font = 'bold 22px Outfit, sans-serif';
+  ctx.textAlign = 'left';
   ctx.fillText('Bolãochonete', 24, 38);
   ctx.fillStyle = '#888888';
   ctx.font = '13px Outfit, sans-serif';
@@ -28,25 +70,20 @@ function exportRankingImage(ranking) {
 
   // col headers
   const cols = [
-    { label: 'POS', x: 24, w: 36, align: 'center' },
-    { label: 'PARTICIPANTE', x: 72, w: 200, align: 'left' },
-    { label: 'PTS', x: 290, w: 60, align: 'center' },
-    { label: 'EXATOS', x: 362, w: 60, align: 'center' },
-    { label: 'PARC3', x: 432, w: 60, align: 'center' },
-    { label: 'BÁSICO', x: 502, w: 60, align: 'center' },
-    { label: 'BÔNUS', x: 572, w: 60, align: 'center' },
+    { label: 'POS',         x: 24,  w: 36,  align: 'center' },
+    { label: 'PARTICIPANTE',x: NAME_X, w: 190, align: 'left' },
+    { label: 'PTS',         x: 300, w: 60,  align: 'center' },
+    { label: 'EXATOS',      x: 368, w: 60,  align: 'center' },
+    { label: 'PARC3',       x: 434, w: 60,  align: 'center' },
+    { label: 'BÁSICO',      x: 500, w: 60,  align: 'center' },
+    { label: 'BÔNUS',       x: 566, w: 60,  align: 'center' },
   ];
   ctx.fillStyle = '#555555';
   ctx.font = 'bold 10px Outfit, sans-serif';
   const colY = HEADER_H - 12;
   cols.forEach(c => {
-    if (c.align === 'center') {
-      ctx.textAlign = 'center';
-      ctx.fillText(c.label, c.x + c.w / 2, colY);
-    } else {
-      ctx.textAlign = 'left';
-      ctx.fillText(c.label, c.x, colY);
-    }
+    ctx.textAlign = c.align;
+    ctx.fillText(c.label, c.align === 'center' ? c.x + c.w / 2 : c.x, colY);
   });
 
   // separator
@@ -58,7 +95,6 @@ function exportRankingImage(ranking) {
 
   ranking.forEach((p, i) => {
     const y = HEADER_H + i * ROW_H;
-    // row bg highlight (even)
     if (i % 2 === 0) { ctx.fillStyle = 'rgba(255,255,255,0.012)'; ctx.fillRect(0, y, W, ROW_H); }
 
     const cy = y + ROW_H / 2;
@@ -69,16 +105,20 @@ function exportRankingImage(ranking) {
     ctx.fillStyle = posColors[i] || '#555555';
     ctx.fillText(String(i + 1), cols[0].x + cols[0].w / 2, cy + 6);
 
-    // name
+    // avatar
+    drawAvatarCircle(ctx, avatars[i], p.name, AVATAR_X, cy, AVATAR_R);
+
+    // name + champion pick
     ctx.textAlign = 'left';
     ctx.font = 'bold 13px Outfit, sans-serif';
     ctx.fillStyle = '#F5F5F0';
-    const nameX = 72;
-    ctx.fillText(p.name.length > 22 ? p.name.slice(0, 21) + '…' : p.name, nameX, cy + 2);
+    const maxName = 20;
+    ctx.fillText(p.name.length > maxName ? p.name.slice(0, maxName - 1) + '…' : p.name, NAME_X, cy + 2);
     if (p.champion_pick) {
       ctx.font = '10px Outfit, sans-serif';
       ctx.fillStyle = '#888888';
-      ctx.fillText(p.champion_pick.length > 20 ? p.champion_pick.slice(0, 19) + '…' : p.champion_pick, nameX, cy + 16);
+      const maxPick = 22;
+      ctx.fillText(p.champion_pick.length > maxPick ? p.champion_pick.slice(0, maxPick - 1) + '…' : p.champion_pick, NAME_X, cy + 16);
     }
 
     // total points
@@ -125,9 +165,9 @@ export default function Classificacao() {
 
   useEffect(() => { api('/api/ranking').then(setRanking).finally(() => setLoading(false)); }, [api]);
 
-  const handleExport = useCallback(() => {
+  const handleExport = useCallback(async () => {
     setExporting(true);
-    setTimeout(() => { exportRankingImage(ranking); setExporting(false); }, 100);
+    try { await exportRankingImage(ranking); } finally { setExporting(false); }
   }, [ranking]);
 
   if (loading) return <div className="spinner" />;
