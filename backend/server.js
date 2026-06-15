@@ -223,7 +223,18 @@ app.get('/api/ranking', auth, async (req, res) => {
       }
 
       pts += bonusPts;
-      return { ...user, total_points: pts, exact, partial3: p3, partial1: p1, bonus_points: bonusPts, award_details: awardDetails };
+
+      // Streak: jogos encerrados consecutivos com 3 ou 5 pts
+      const finished = bets
+        .filter(b => b.rh !== null && b.ra !== null)
+        .sort((a, b) => (a.match_date + a.match_time) > (b.match_date + b.match_time) ? 1 : -1);
+      let streak = 0;
+      for (let i = finished.length - 1; i >= 0; i--) {
+        const p = calculatePoints(finished[i].home_score, finished[i].away_score, finished[i].rh, finished[i].ra);
+        if (p >= 3) streak++; else break;
+      }
+
+      return { ...user, total_points: pts, exact, partial3: p3, partial1: p1, bonus_points: bonusPts, award_details: awardDetails, streak };
     }));
 
     ranking.sort((a, b) => b.total_points - a.total_points);
@@ -443,7 +454,7 @@ app.get('/api/stats/:userId', auth, async (req, res) => {
       if (pts < 5) {
         const diffH = Math.abs(b.home_score - b.rh);
         const diffA = Math.abs(b.away_score - b.ra);
-        if ((diffH === 1 && diffA === 0) || (diffH === 0 && diffA === 1) || (diffH === 1 && diffA === 1)) {
+        if ((diffH === 1 && diffA === 0) || (diffH === 0 && diffA === 1)) {
           missedByOneGoal++;
         }
       }
@@ -466,14 +477,13 @@ app.get('/api/stats/:userId', auth, async (req, res) => {
       const key = `${hi}x${lo}`;
       scoreCounts[key] = (scoreCounts[key] || 0) + 1;
     }
-    let favoriteScore = null;
-    let favoriteScoreCount = 0;
-    for (const [score, count] of Object.entries(scoreCounts)) {
-      if (count > favoriteScoreCount) { favoriteScore = score; favoriteScoreCount = count; }
-    }
+    const topScores = Object.entries(scoreCounts)
+      .sort((a, b) => b[1] - a[1])
+      .slice(0, 3)
+      .map(([score, count]) => ({ score, count }));
 
     // ── Contra a maioria / O único / Raro / Seguidor ──
-    let againstMajority = 0, theOnlyOne = 0, rareCount = 0, followerCount = 0, followerTotal = 0;
+    let againstMajority = 0, theOnlyOne = 0, followerCount = 0, followerTotal = 0;
     for (const b of finishedBets) {
       const gameBets = betsByGame[b.game_id] || [];
       if (gameBets.length < 2) continue;
@@ -491,9 +501,6 @@ app.get('/api/stats/:userId', auth, async (req, res) => {
 
       // O único (único com esse vencedor)
       if (winnerCounts[myWinner] === 1) theOnlyOne++;
-
-      // Raro: menos de 3 pessoas escolheram o mesmo vencedor (ou empate)
-      if (winnerCounts[myWinner] <= 2) rareCount++;
     }
     const followerPct = followerTotal > 0 ? Math.round((followerCount / followerTotal) * 100) : 0;
 
@@ -544,6 +551,35 @@ app.get('/api/stats/:userId', auth, async (req, res) => {
       return { key, label, total, exatos, parc3, basico, erro };
     });
 
+    // ── Taxa de aproveitamento, média de pontos, últimas 5, gols chutados ──
+    const totalPts = finishedBets.reduce((s, b) => s + calculatePoints(b.home_score, b.away_score, b.rh, b.ra), 0);
+    const aproveitamento = finishedBets.length > 0
+      ? Math.round((finishedBets.filter(b => calculatePoints(b.home_score, b.away_score, b.rh, b.ra) > 0).length / finishedBets.length) * 100)
+      : 0;
+    const avgPoints = finishedBets.length > 0
+      ? (totalPts / finishedBets.length).toFixed(1)
+      : null;
+    const last5 = finishedBets.slice(-5);
+    const avg5Points = last5.length > 0
+      ? (last5.reduce((s, b) => s + calculatePoints(b.home_score, b.away_score, b.rh, b.ra), 0) / last5.length).toFixed(1)
+      : null;
+    const avgGoals = finishedBets.length > 0
+      ? ((finishedBets.reduce((s, b) => s + b.home_score + b.away_score, 0)) / finishedBets.length).toFixed(1)
+      : null;
+
+    // ── Diferença para o líder ──
+    const allUsersForLeader = await all('SELECT id FROM users WHERE is_admin=0 AND is_precadastro=0');
+    const allBonus = await all('SELECT user_id, SUM(points) as total FROM bonus_awards GROUP BY user_id');
+    const bonusMap = {};
+    for (const b of allBonus) bonusMap[b.user_id] = Number(b.total);
+    let leaderPoints = 0;
+    for (const u of allUsersForLeader) {
+      const ubets = await all('SELECT points FROM bets b JOIN games g ON b.game_id=g.id WHERE b.user_id=? AND g.home_score IS NOT NULL', [u.id]);
+      const uTotal = ubets.reduce((s, b) => s + (b.points || 0), 0) + (bonusMap[u.id] || 0);
+      if (uTotal > leaderPoints) leaderPoints = uTotal;
+    }
+    const diffToLeader = totalPts - leaderPoints;
+
     // ── Melhor amigo ──
     const allUsers = await all('SELECT id,name,username,avatar_path FROM users WHERE is_admin=0 AND is_precadastro=0 AND id!=?', [targetId]);
     const myBetsByGame = {};
@@ -568,6 +604,7 @@ app.get('/api/stats/:userId', auth, async (req, res) => {
     }
     friendScores.sort((a, b) => b.similarity - a.similarity);
     const bestFriends = friendScores.slice(0, 3);
+    const worstFriends = [...friendScores].filter(f => f.shared >= 3).sort((a, b) => a.similarity - b.similarity).slice(0, 3);
 
     res.json({
       user: targetUser,
@@ -576,11 +613,9 @@ app.get('/api/stats/:userId', auth, async (req, res) => {
         drawsBet,
         boldBets,
         thrashingsBet,
-        favoriteScore,
-        favoriteScoreCount,
+        topScores,
         againstMajority,
         theOnlyOne,
-        rareCount,
         followerPct,
         bestStreak,
         worstStreak,
@@ -590,8 +625,14 @@ app.get('/api/stats/:userId', auth, async (req, res) => {
         cursedTeamMisses,
         totalFinished: finishedBets.length,
         totalBets: myBets.length,
+        aproveitamento,
+        avgPoints,
+        avg5Points,
+        avgGoals,
+        diffToLeader,
       },
       bestFriends,
+      worstFriends,
       betTypeTable,
     });
   } catch(e) { res.status(500).json({ error: e.message }); }

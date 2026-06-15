@@ -96,6 +96,44 @@ export default function Estatisticas() {
             </div>
           </div>
 
+          <Section title="📊 Geral">
+            <StatCard
+              icon="✅"
+              label="Aproveitamento"
+              value={`${data.stats.aproveitamento}%`}
+              sub="Jogos onde pontuou algo"
+              color="var(--green)"
+            />
+            <StatCard
+              icon="📈"
+              label="Média por jogo"
+              value={data.stats.avgPoints ?? '—'}
+              sub="Pontos médios por jogo"
+              color="var(--lime)"
+            />
+            <StatCard
+              icon="⚡"
+              label="Média últimas 5"
+              value={data.stats.avg5Points ?? '—'}
+              sub={Number(data.stats.avg5Points) > Number(data.stats.avgPoints) ? '↑ acima da média' : Number(data.stats.avg5Points) < Number(data.stats.avgPoints) ? '↓ abaixo da média' : '= na média'}
+              color={Number(data.stats.avg5Points) > Number(data.stats.avgPoints) ? 'var(--green)' : Number(data.stats.avg5Points) < Number(data.stats.avgPoints) ? 'var(--red)' : 'var(--muted)'}
+            />
+            <StatCard
+              icon="🏅"
+              label="Diferença pro líder"
+              value={data.stats.diffToLeader === 0 ? 'Líder!' : `${data.stats.diffToLeader} pts`}
+              sub={data.stats.diffToLeader === 0 ? 'Você está em primeiro' : 'Para alcançar o líder'}
+              color={data.stats.diffToLeader === 0 ? 'var(--lime)' : 'var(--muted)'}
+            />
+            <StatCard
+              icon="⚽"
+              label="Média de gols"
+              value={data.stats.avgGoals ?? '—'}
+              sub="Gols por partida chutada"
+              color="var(--blue)"
+            />
+          </Section>
+
           <Section title="😬 Quase Lá">
             <StatCard
               icon="🎯"
@@ -125,15 +163,16 @@ export default function Estatisticas() {
               value={data.stats.thrashingsBet}
               sub="Diferença de 3+ gols"
             />
-            {data.stats.favoriteScore && (
+            {data.stats.topScores?.length > 0 && data.stats.topScores.map((s, i) => (
               <StatCard
-                icon="🎲"
-                label="Placar favorito"
-                value={data.stats.favoriteScore}
-                sub={`Chutou ${data.stats.favoriteScoreCount}x`}
+                key={s.score}
+                icon={['🥇','🥈','🥉'][i]}
+                label={i === 0 ? 'Placar favorito' : `Placar favorito #${i + 1}`}
+                value={s.score}
+                sub={`Chutou ${s.count}x`}
                 color="var(--blue)"
               />
-            )}
+            ))}
           </Section>
 
           <Section title="🏴‍☠️ Rebelde">
@@ -145,18 +184,11 @@ export default function Estatisticas() {
               color="var(--red)"
             />
             <StatCard
-              icon="🦅"
-              label="O único"
-              value={data.stats.theOnlyOne}
-              sub="Foi o único a chutar esse vencedor"
-              color="var(--red)"
-            />
-            <StatCard
               icon="💎"
               label="Palpite raro"
-              value={data.stats.rareCount}
-              sub="Vencedor escolhido por menos de 3 pessoas"
-              color="var(--yellow)"
+              value={data.stats.theOnlyOne}
+              sub="Único no bolão a chutar esse vencedor"
+              color="var(--red)"
             />
             <StatCard
               icon="🐑"
@@ -202,11 +234,32 @@ export default function Estatisticas() {
             )}
           </Section>
 
+          {/* Pior amigo */}
+          {data.worstFriends?.length > 0 && (
+            <div className="stats-section">
+              <h3 className="stats-section-title">😤 Pior Amigo do Bolão</h3>
+              <p className="stats-section-desc">Top 3 pessoas com os palpites mais diferentes</p>
+              <div className="stats-friends">
+                {data.worstFriends.map((f, i) => (
+                  <div key={f.id} className="stats-friend-card">
+                    <div className="stats-friend-rank" style={{ color: 'var(--red)' }}>#{i + 1}</div>
+                    <Avatar src={f.avatar_path} name={f.name} size={44} />
+                    <div className="stats-friend-info">
+                      <div className="stats-friend-name">{f.name}</div>
+                      <div className="stats-friend-meta">{f.shared} jogos comparados</div>
+                    </div>
+                    <button className="btn btn-ghost btn-sm" onClick={() => setSelectedId(f.id)}>Ver stats</button>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
           {/* Tabela por tipo de palpite */}
           {data.betTypeTable && (
             <div className="stats-section">
               <h3 className="stats-section-title">📋 Desempenho por Tipo de Palpite</h3>
-              <p className="stats-section-desc">Baseado no que você chutou (2x0 e 0x2 contam igual)</p>
+              <p className="stats-section-desc">Baseado no que você chutou</p>
               <div className="card" style={{ padding: 0, overflowX: 'auto' }}>
                 <table className="bet-type-table">
                   <thead>

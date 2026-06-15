@@ -227,6 +227,7 @@ export default function Classificacao() {
                       <div>
                         <div style={{ fontWeight:600, fontSize:'0.9rem' }}>
                           {p.name}
+                          {p.streak >= 3 && <span title={`${p.streak} jogos seguidos pontuando 3 ou 5 pts`} style={{ marginLeft:'5px' }}>🔥</span>}
                           {p.id===user?.id && <span style={{ color:'var(--lime)', fontSize:'0.7rem', marginLeft:'6px', fontWeight:400 }}>(você)</span>}
                         </div>
                         {p.champion_pick && <div style={{ fontSize:'0.7rem', color:'var(--muted)', marginTop:'1px' }}>{p.champion_pick}</div>}
