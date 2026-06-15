@@ -199,7 +199,7 @@ app.get('/api/ranking', auth, async (req, res) => {
 
     const ranking = await Promise.all(users.map(async user => {
       const bets = await all(
-        `SELECT b.*, g.home_score as rh, g.away_score as ra FROM bets b JOIN games g ON b.game_id=g.id WHERE b.user_id=?`,
+        `SELECT b.*, g.home_score as rh, g.away_score as ra, g.match_date, g.match_time FROM bets b JOIN games g ON b.game_id=g.id WHERE b.user_id=?`,
         [user.id]
       );
       let pts = 0, exact = 0, p3 = 0, p1 = 0;
