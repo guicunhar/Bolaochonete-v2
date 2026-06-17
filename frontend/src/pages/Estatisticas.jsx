@@ -80,6 +80,7 @@ export default function Estatisticas() {
   function handleSelectRanking() {
     setShowRanking(true);
     setSelectedId(null);
+    setData(null);
     if (!rankingData) {
       setRankingLoading(true);
       api('/api/stats/ranking', token)
