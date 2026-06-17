@@ -390,6 +390,9 @@ input, select, textarea { font-family: inherit; }
 
 /* ── CLASSIFICAÇÃO ─────────────────────────────────────────── */
 .stats-empty { color: var(--muted); font-size: 0.85rem; text-align: center; padding: 16px 0; }
+.stats-partial-note { font-size: 0.78rem; color: var(--yellow); margin: 0; }
+.stats-user-pill--ranking { border-style: dashed; margin-left: 4px; }
+.stats-user-pill-icon { font-size: 1rem; line-height: 1; }
 
 .classification-tops {
   display: grid; grid-template-columns: repeat(2, 1fr); gap: 16px;

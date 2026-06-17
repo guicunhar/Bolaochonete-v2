@@ -65,7 +65,8 @@ export default function Estatisticas() {
   const [error, setError] = useState(null);
 
   const [rankingData, setRankingData] = useState(null);
-  const [rankingLoading, setRankingLoading] = useState(true);
+  const [rankingLoading, setRankingLoading] = useState(false);
+  const [showRanking, setShowRanking] = useState(false);
   const [lastNFilter, setLastNFilter] = useState(5);
   const [faseFilter, setFaseFilter] = useState('fase1');
 
@@ -74,10 +75,23 @@ export default function Estatisticas() {
       setUsers(list);
       setSelectedId(user.id);
     });
-    api('/api/stats/ranking', token)
-      .then(d => setRankingData(d))
-      .finally(() => setRankingLoading(false));
   }, [token, user.id]);
+
+  function handleSelectRanking() {
+    setShowRanking(true);
+    setSelectedId(null);
+    if (!rankingData) {
+      setRankingLoading(true);
+      api('/api/stats/ranking', token)
+        .then(d => setRankingData(d))
+        .finally(() => setRankingLoading(false));
+    }
+  }
+
+  function handleSelectUser(id) {
+    setShowRanking(false);
+    setSelectedId(id);
+  }
 
   useEffect(() => {
     if (!selectedId) return;
@@ -107,15 +121,23 @@ export default function Estatisticas() {
           <button
             key={u.id}
             className={`stats-user-pill${selectedId === u.id ? ' active' : ''}`}
-            onClick={() => setSelectedId(u.id)}
+            onClick={() => handleSelectUser(u.id)}
           >
             <Avatar src={u.avatar_path} name={u.name} size={24} />
             <span>{u.name.split(' ')[0]}</span>
           </button>
         ))}
+        <button
+          className={`stats-user-pill stats-user-pill--ranking${showRanking ? ' active' : ''}`}
+          onClick={handleSelectRanking}
+        >
+          <span className="stats-user-pill-icon">🏆</span>
+          <span>Classificação</span>
+        </button>
       </div>
 
       {/* ── ESTATÍSTICAS DE CLASSIFICAÇÃO COLETIVA ── */}
+      {showRanking && (
       <div className="stats-section">
         <h3 className="stats-section-title">🏆 Estatísticas de Classificação</h3>
         <p className="stats-section-desc">Rankings baseados na posição de cada um após cada rodada do bolão</p>
@@ -173,12 +195,20 @@ export default function Estatisticas() {
               {rankingData.rankingFase[faseFilter] == null ? (
                 <p className="stats-empty">Nenhuma rodada dessa fase foi encerrada ainda</p>
               ) : (
-                <RankingTable rows={rankingData.rankingFase[faseFilter]} valueKey="pts" valueLabel="pts" />
+                <>
+                  {!rankingData.rankingFase[faseFilter].complete && (
+                    <p className="stats-partial-note">
+                      ⚠️ Parcial — {rankingData.rankingFase[faseFilter].gamesFinished} de {rankingData.rankingFase[faseFilter].gamesTotal} jogos encerrados
+                    </p>
+                  )}
+                  <RankingTable rows={rankingData.rankingFase[faseFilter].rows} valueKey="pts" valueLabel="pts" />
+                </>
               )}
             </div>
           </>
         )}
       </div>
+      )}
 
       {loading && (
         <div style={{ display: 'flex', justifyContent: 'center', marginTop: 60 }}>

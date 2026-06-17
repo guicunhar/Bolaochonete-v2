@@ -416,33 +416,45 @@ app.get('/api/admin/bonus-awards', auth, adminOnly, async (req, res) => {
 // Helper: compute per-round cumulative ranking stats for all users
 async function computeRankingData() {
   const users = await all('SELECT id, name, username, avatar_path FROM users WHERE is_admin=0 AND is_precadastro=0');
+
+  // All finished games in CHRONOLOGICAL order — this is the "rodada" order for the bolão
   const allBets = await all(`
-    SELECT b.user_id, b.points, g.match_number
+    SELECT b.user_id, b.points, g.id as game_id, g.match_number, g.phase,
+           g.match_date, g.match_time
     FROM bets b JOIN games g ON b.game_id = g.id
     JOIN users u ON b.user_id = u.id
     WHERE g.home_score IS NOT NULL AND u.is_admin=0 AND u.is_precadastro=0
-    ORDER BY g.match_number
+    ORDER BY g.match_date, g.match_time, g.match_number
   `);
+
   const allBonus = await all('SELECT user_id, SUM(points) as total FROM bonus_awards GROUP BY user_id');
   const bonusMap = {};
   for (const b of allBonus) bonusMap[b.user_id] = Number(b.total);
 
-  const matchNumbers = [...new Set(allBets.map(b => b.match_number))].sort((a, b) => a - b);
-  const betsByMatch = {};
+  // Distinct finished games in chronological order, each with a 1-based chrono index
+  const seenGames = new Map(); // game_id -> chronoIndex (1-based)
   for (const b of allBets) {
-    if (!betsByMatch[b.match_number]) betsByMatch[b.match_number] = [];
-    betsByMatch[b.match_number].push(b);
+    if (!seenGames.has(b.game_id)) seenGames.set(b.game_id, seenGames.size + 1);
+  }
+  const chronoGameIds = [...seenGames.keys()]; // ordered chronologically
+  const totalFinishedGames = chronoGameIds.length;
+
+  // Group bets by game_id
+  const betsByGame = {};
+  for (const b of allBets) {
+    if (!betsByGame[b.game_id]) betsByGame[b.game_id] = [];
+    betsByGame[b.game_id].push(b);
   }
 
+  // Cumulative per-round stats (position after each finished game, chronologically)
   const cumulative = {};
   for (const u of users) cumulative[u.id] = bonusMap[u.id] || 0;
-
   const userStats = {};
   for (const u of users) userStats[u.id] = { rodadasLider: 0, rodadasTop3: 0, rodadasTop6: 0, rodadasBot6: 0, rodadasBot3: 0, rodadasLanterna: 0, posicaoTotal: 0, posicaoCount: 0 };
-
   const n = users.length;
-  for (const mn of matchNumbers) {
-    for (const b of (betsByMatch[mn] || [])) {
+
+  for (const gid of chronoGameIds) {
+    for (const b of (betsByGame[gid] || [])) {
       cumulative[b.user_id] = (cumulative[b.user_id] || 0) + (b.points || 0);
     }
     const sorted = users.map(u => ({ id: u.id, pts: cumulative[u.id] || 0 })).sort((a, b) => b.pts - a.pts);
@@ -465,43 +477,65 @@ async function computeRankingData() {
     posicaoMedia: userStats[u.id].posicaoCount > 0 ? Number((userStats[u.id].posicaoTotal / userStats[u.id].posicaoCount).toFixed(1)) : null,
   }));
 
-  // Last N rounds rankings (points only in those N rounds, no bonus)
+  // Last N rounds rankings — last N games in chronological order, points only in those games
   const rankingLast = {};
   for (const n of [5, 10, 15]) {
-    const lastN = matchNumbers.slice(-n);
-    if (lastN.length < n) { rankingLast[n] = null; continue; }
+    const lastNIds = chronoGameIds.slice(-n);
+    if (lastNIds.length < n) { rankingLast[n] = null; continue; }
     const userPts = {};
     for (const u of users) userPts[u.id] = 0;
-    for (const mn of lastN) for (const b of (betsByMatch[mn] || [])) userPts[b.user_id] = (userPts[b.user_id] || 0) + (b.points || 0);
+    for (const gid of lastNIds) for (const b of (betsByGame[gid] || [])) userPts[b.user_id] = (userPts[b.user_id] || 0) + (b.points || 0);
     rankingLast[n] = users.map(u => ({ ...u, pts: userPts[u.id] || 0 })).sort((a, b) => b.pts - a.pts);
   }
 
-  // Phase rankings (points only in those phases, no bonus)
-  const phaseRanges = { fase1: [1, 24], fase2: [25, 48], fase3: [49, 72], mataMata: [73, Infinity] };
+  // Phase rankings — based on CHRONOLOGICAL position (1st 24 finished = fase1, etc.)
+  // Not by match_number, because games from different groups interleave chronologically
+  const phaseTotals = { fase1: 24, fase2: 24, fase3: 24, mataMata: 32 };
+  const phaseSlices = {
+    fase1:    chronoGameIds.slice(0, 24),
+    fase2:    chronoGameIds.slice(24, 48),
+    fase3:    chronoGameIds.slice(48, 72),
+    mataMata: chronoGameIds.slice(72),
+  };
+  // Total games per phase (including not-yet-finished ones)
+  const phaseTotalGames = {
+    fase1: 24, fase2: 24, fase3: 24,
+    mataMata: allBets.reduce((max, b) => {
+      // count total mata-mata games from game info — approximate by phase
+      return max;
+    }, 32),
+  };
+
   const rankingFase = {};
-  for (const [fase, [min, max]] of Object.entries(phaseRanges)) {
-    const faseBets = allBets.filter(b => b.match_number >= min && b.match_number <= max);
-    if (faseBets.length === 0) { rankingFase[fase] = null; continue; }
+  for (const [fase, gameIds] of Object.entries(phaseSlices)) {
+    const gamesFinished = gameIds.length;
+    const gamesTotal = phaseTotals[fase];
+    if (gamesFinished === 0) { rankingFase[fase] = null; continue; }
     const userPts = {};
     for (const u of users) userPts[u.id] = 0;
-    for (const b of faseBets) userPts[b.user_id] = (userPts[b.user_id] || 0) + (b.points || 0);
-    rankingFase[fase] = users.map(u => ({ ...u, pts: userPts[u.id] || 0 })).sort((a, b) => b.pts - a.pts);
+    for (const gid of gameIds) for (const b of (betsByGame[gid] || [])) userPts[b.user_id] = (userPts[b.user_id] || 0) + (b.points || 0);
+    rankingFase[fase] = {
+      rows: users.map(u => ({ ...u, pts: userPts[u.id] || 0 })).sort((a, b) => b.pts - a.pts),
+      gamesFinished,
+      gamesTotal,
+      complete: gamesFinished >= gamesTotal,
+    };
   }
 
-  return { users, usersWithStats, matchNumbers, rankingLast, rankingFase };
+  return { users, usersWithStats, totalFinishedGames, rankingLast, rankingFase };
 }
 
 app.get('/api/stats/ranking', auth, async (req, res) => {
   try {
-    const { usersWithStats, matchNumbers, rankingLast, rankingFase } = await computeRankingData();
-    if (matchNumbers.length === 0) {
+    const { usersWithStats, totalFinishedGames, rankingLast, rankingFase } = await computeRankingData();
+    if (totalFinishedGames === 0) {
       return res.json({ top5Leaders: [], top5Lanterns: [], top5Top3: [], top5Bot3: [], rankingLast: { 5: null, 10: null, 15: null }, rankingFase: { fase1: null, fase2: null, fase3: null, mataMata: null } });
     }
     const top5Leaders  = [...usersWithStats].sort((a, b) => b.rodadasLider    - a.rodadasLider).slice(0, 5);
     const top5Lanterns = [...usersWithStats].sort((a, b) => b.rodadasLanterna - a.rodadasLanterna).slice(0, 5);
     const top5Top3     = [...usersWithStats].sort((a, b) => b.rodadasTop3     - a.rodadasTop3).slice(0, 5);
     const top5Bot3     = [...usersWithStats].sort((a, b) => b.rodadasBot3     - a.rodadasBot3).slice(0, 5);
-    res.json({ top5Leaders, top5Lanterns, top5Top3, top5Bot3, rankingLast, rankingFase, totalRodadas: matchNumbers.length });
+    res.json({ top5Leaders, top5Lanterns, top5Top3, top5Bot3, rankingLast, rankingFase, totalRodadas: totalFinishedGames });
   } catch(e) { res.status(500).json({ error: e.message }); }
 });
 
@@ -672,27 +706,28 @@ app.get('/api/stats/:userId', auth, async (req, res) => {
     }
     const diffToLeader = totalPts - leaderPoints;
 
-    // ── Estatísticas de Classificação ──
+    // ── Estatísticas de Classificação (ordem cronológica) ──
     const rankingBets = await all(`
-      SELECT b.user_id, b.points, g.match_number
+      SELECT b.user_id, b.points, g.id as game_id
       FROM bets b JOIN games g ON b.game_id = g.id
       JOIN users u ON b.user_id = u.id
       WHERE g.home_score IS NOT NULL AND u.is_admin=0 AND u.is_precadastro=0
-      ORDER BY g.match_number
+      ORDER BY g.match_date, g.match_time, g.match_number
     `);
-    const rankingMatchNums = [...new Set(rankingBets.map(b => b.match_number))].sort((a, b) => a - b);
-    const rankingBetsByMatch = {};
+    const seenRankGames = new Map();
+    for (const b of rankingBets) if (!seenRankGames.has(b.game_id)) seenRankGames.set(b.game_id, seenRankGames.size);
+    const rankingBetsByGame = {};
     for (const b of rankingBets) {
-      if (!rankingBetsByMatch[b.match_number]) rankingBetsByMatch[b.match_number] = [];
-      rankingBetsByMatch[b.match_number].push(b);
+      if (!rankingBetsByGame[b.game_id]) rankingBetsByGame[b.game_id] = [];
+      rankingBetsByGame[b.game_id].push(b);
     }
     const cumRank = {};
     for (const u of allUsersForLeader) cumRank[u.id] = bonusMap[u.id] || 0;
     const nUsers = allUsersForLeader.length;
     let rodadasLider = 0, rodadasTop3 = 0, rodadasTop6 = 0, rodadasBot6 = 0, rodadasLanterna = 0;
     let posTotal = 0, posCount = 0;
-    for (const mn of rankingMatchNums) {
-      for (const b of (rankingBetsByMatch[mn] || [])) cumRank[b.user_id] = (cumRank[b.user_id] || 0) + (b.points || 0);
+    for (const gid of seenRankGames.keys()) {
+      for (const b of (rankingBetsByGame[gid] || [])) cumRank[b.user_id] = (cumRank[b.user_id] || 0) + (b.points || 0);
       const sorted = allUsersForLeader.map(u => ({ id: u.id, pts: cumRank[u.id] || 0 })).sort((a, b) => b.pts - a.pts);
       const myIdx = sorted.findIndex(u => u.id === targetId);
       if (myIdx === -1) continue;
@@ -760,7 +795,7 @@ app.get('/api/stats/:userId', auth, async (req, res) => {
       bestFriends,
       worstFriends,
       betTypeTable,
-      rankingStats: { rodadasLider, rodadasTop3, rodadasTop6, rodadasBot6, rodadasLanterna, posicaoMedia, totalRodadas: rankingMatchNums.length },
+      rankingStats: { rodadasLider, rodadasTop3, rodadasTop6, rodadasBot6, rodadasLanterna, posicaoMedia, totalRodadas: seenRankGames.size },
     });
   } catch(e) { res.status(500).json({ error: e.message }); }
 });
