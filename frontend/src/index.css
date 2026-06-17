@@ -388,6 +388,47 @@ input, select, textarea { font-family: inherit; }
 .bet-type-table tbody tr:hover { background: rgba(255,255,255,0.02); }
 .bet-type-table tbody tr:last-child td { border-bottom: none; }
 
+/* ── CLASSIFICAÇÃO ─────────────────────────────────────────── */
+.stats-empty { color: var(--muted); font-size: 0.85rem; text-align: center; padding: 16px 0; }
+
+.classification-tops {
+  display: grid; grid-template-columns: repeat(2, 1fr); gap: 16px;
+}
+.classification-top-block {
+  background: var(--card); border: 1px solid var(--border);
+  border-radius: var(--radius); padding: 14px 16px;
+  display: flex; flex-direction: column; gap: 10px;
+}
+.classification-top-title {
+  font-size: 0.82rem; font-weight: 700; color: var(--muted);
+  text-transform: uppercase; letter-spacing: 0.05em; margin: 0;
+}
+
+.ranking-table { display: flex; flex-direction: column; gap: 6px; }
+.ranking-row {
+  display: flex; align-items: center; gap: 8px;
+  font-size: 0.85rem;
+}
+.ranking-pos { font-weight: 800; font-size: 0.9rem; min-width: 26px; }
+.ranking-name { flex: 1; font-weight: 600; color: var(--white); }
+.ranking-value { font-size: 0.8rem; color: var(--muted); white-space: nowrap; }
+
+.classification-filter-section {
+  background: var(--card); border: 1px solid var(--border);
+  border-radius: var(--radius); padding: 16px;
+  display: flex; flex-direction: column; gap: 12px;
+  margin-top: 4px;
+}
+
+.phase-badges { display: flex; flex-wrap: wrap; gap: 6px; }
+.phase-badge {
+  padding: 5px 12px; border-radius: 20px; font-size: 0.78rem; font-weight: 600;
+  background: var(--card2); border: 1px solid var(--border); color: var(--muted);
+  cursor: pointer; transition: all 0.15s;
+}
+.phase-badge:hover { border-color: var(--border2); color: var(--white); }
+.phase-badge.active { background: rgba(200,240,62,0.1); border-color: var(--lime); color: var(--lime); }
+
 /* ── RESPONSIVE ────────────────────────────────────────────── */
 @media(max-width:768px) {
   .page { padding: 16px 12px 60px; }
@@ -407,3 +448,4 @@ input, select, textarea { font-family: inherit; }
   .mobile-nav-item span { font-size: 1.1rem; }
 }
 @media(min-width:769px) { .mobile-nav { display: none; } }
+@media(max-width:580px) { .classification-tops { grid-template-columns: 1fr; } }

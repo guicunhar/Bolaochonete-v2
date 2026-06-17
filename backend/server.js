@@ -413,6 +413,98 @@ app.get('/api/admin/bonus-awards', auth, adminOnly, async (req, res) => {
 
 // ── STATS ─────────────────────────────────────────────────────────────────────
 
+// Helper: compute per-round cumulative ranking stats for all users
+async function computeRankingData() {
+  const users = await all('SELECT id, name, username, avatar_path FROM users WHERE is_admin=0 AND is_precadastro=0');
+  const allBets = await all(`
+    SELECT b.user_id, b.points, g.match_number
+    FROM bets b JOIN games g ON b.game_id = g.id
+    JOIN users u ON b.user_id = u.id
+    WHERE g.home_score IS NOT NULL AND u.is_admin=0 AND u.is_precadastro=0
+    ORDER BY g.match_number
+  `);
+  const allBonus = await all('SELECT user_id, SUM(points) as total FROM bonus_awards GROUP BY user_id');
+  const bonusMap = {};
+  for (const b of allBonus) bonusMap[b.user_id] = Number(b.total);
+
+  const matchNumbers = [...new Set(allBets.map(b => b.match_number))].sort((a, b) => a - b);
+  const betsByMatch = {};
+  for (const b of allBets) {
+    if (!betsByMatch[b.match_number]) betsByMatch[b.match_number] = [];
+    betsByMatch[b.match_number].push(b);
+  }
+
+  const cumulative = {};
+  for (const u of users) cumulative[u.id] = bonusMap[u.id] || 0;
+
+  const userStats = {};
+  for (const u of users) userStats[u.id] = { rodadasLider: 0, rodadasTop3: 0, rodadasTop6: 0, rodadasBot6: 0, rodadasBot3: 0, rodadasLanterna: 0, posicaoTotal: 0, posicaoCount: 0 };
+
+  const n = users.length;
+  for (const mn of matchNumbers) {
+    for (const b of (betsByMatch[mn] || [])) {
+      cumulative[b.user_id] = (cumulative[b.user_id] || 0) + (b.points || 0);
+    }
+    const sorted = users.map(u => ({ id: u.id, pts: cumulative[u.id] || 0 })).sort((a, b) => b.pts - a.pts);
+    sorted.forEach((u, idx) => {
+      const rank = idx + 1;
+      userStats[u.id].posicaoTotal += rank;
+      userStats[u.id].posicaoCount++;
+      if (rank === 1) userStats[u.id].rodadasLider++;
+      if (rank <= 3) userStats[u.id].rodadasTop3++;
+      if (rank <= 6) userStats[u.id].rodadasTop6++;
+      if (rank >= n - 5) userStats[u.id].rodadasBot6++;
+      if (rank >= n - 2) userStats[u.id].rodadasBot3++;
+      if (rank === n) userStats[u.id].rodadasLanterna++;
+    });
+  }
+
+  const usersWithStats = users.map(u => ({
+    ...u,
+    ...userStats[u.id],
+    posicaoMedia: userStats[u.id].posicaoCount > 0 ? Number((userStats[u.id].posicaoTotal / userStats[u.id].posicaoCount).toFixed(1)) : null,
+  }));
+
+  // Last N rounds rankings (points only in those N rounds, no bonus)
+  const rankingLast = {};
+  for (const n of [5, 10, 15]) {
+    const lastN = matchNumbers.slice(-n);
+    if (lastN.length < n) { rankingLast[n] = null; continue; }
+    const userPts = {};
+    for (const u of users) userPts[u.id] = 0;
+    for (const mn of lastN) for (const b of (betsByMatch[mn] || [])) userPts[b.user_id] = (userPts[b.user_id] || 0) + (b.points || 0);
+    rankingLast[n] = users.map(u => ({ ...u, pts: userPts[u.id] || 0 })).sort((a, b) => b.pts - a.pts);
+  }
+
+  // Phase rankings (points only in those phases, no bonus)
+  const phaseRanges = { fase1: [1, 24], fase2: [25, 48], fase3: [49, 72], mataMata: [73, Infinity] };
+  const rankingFase = {};
+  for (const [fase, [min, max]] of Object.entries(phaseRanges)) {
+    const faseBets = allBets.filter(b => b.match_number >= min && b.match_number <= max);
+    if (faseBets.length === 0) { rankingFase[fase] = null; continue; }
+    const userPts = {};
+    for (const u of users) userPts[u.id] = 0;
+    for (const b of faseBets) userPts[b.user_id] = (userPts[b.user_id] || 0) + (b.points || 0);
+    rankingFase[fase] = users.map(u => ({ ...u, pts: userPts[u.id] || 0 })).sort((a, b) => b.pts - a.pts);
+  }
+
+  return { users, usersWithStats, matchNumbers, rankingLast, rankingFase };
+}
+
+app.get('/api/stats/ranking', auth, async (req, res) => {
+  try {
+    const { usersWithStats, matchNumbers, rankingLast, rankingFase } = await computeRankingData();
+    if (matchNumbers.length === 0) {
+      return res.json({ top5Leaders: [], top5Lanterns: [], top5Top3: [], top5Bot3: [], rankingLast: { 5: null, 10: null, 15: null }, rankingFase: { fase1: null, fase2: null, fase3: null, mataMata: null } });
+    }
+    const top5Leaders  = [...usersWithStats].sort((a, b) => b.rodadasLider    - a.rodadasLider).slice(0, 5);
+    const top5Lanterns = [...usersWithStats].sort((a, b) => b.rodadasLanterna - a.rodadasLanterna).slice(0, 5);
+    const top5Top3     = [...usersWithStats].sort((a, b) => b.rodadasTop3     - a.rodadasTop3).slice(0, 5);
+    const top5Bot3     = [...usersWithStats].sort((a, b) => b.rodadasBot3     - a.rodadasBot3).slice(0, 5);
+    res.json({ top5Leaders, top5Lanterns, top5Top3, top5Bot3, rankingLast, rankingFase, totalRodadas: matchNumbers.length });
+  } catch(e) { res.status(500).json({ error: e.message }); }
+});
+
 app.get('/api/stats/:userId', auth, async (req, res) => {
   try {
     const targetId = Number(req.params.userId);
@@ -580,6 +672,40 @@ app.get('/api/stats/:userId', auth, async (req, res) => {
     }
     const diffToLeader = totalPts - leaderPoints;
 
+    // ── Estatísticas de Classificação ──
+    const rankingBets = await all(`
+      SELECT b.user_id, b.points, g.match_number
+      FROM bets b JOIN games g ON b.game_id = g.id
+      JOIN users u ON b.user_id = u.id
+      WHERE g.home_score IS NOT NULL AND u.is_admin=0 AND u.is_precadastro=0
+      ORDER BY g.match_number
+    `);
+    const rankingMatchNums = [...new Set(rankingBets.map(b => b.match_number))].sort((a, b) => a - b);
+    const rankingBetsByMatch = {};
+    for (const b of rankingBets) {
+      if (!rankingBetsByMatch[b.match_number]) rankingBetsByMatch[b.match_number] = [];
+      rankingBetsByMatch[b.match_number].push(b);
+    }
+    const cumRank = {};
+    for (const u of allUsersForLeader) cumRank[u.id] = bonusMap[u.id] || 0;
+    const nUsers = allUsersForLeader.length;
+    let rodadasLider = 0, rodadasTop3 = 0, rodadasTop6 = 0, rodadasBot6 = 0, rodadasLanterna = 0;
+    let posTotal = 0, posCount = 0;
+    for (const mn of rankingMatchNums) {
+      for (const b of (rankingBetsByMatch[mn] || [])) cumRank[b.user_id] = (cumRank[b.user_id] || 0) + (b.points || 0);
+      const sorted = allUsersForLeader.map(u => ({ id: u.id, pts: cumRank[u.id] || 0 })).sort((a, b) => b.pts - a.pts);
+      const myIdx = sorted.findIndex(u => u.id === targetId);
+      if (myIdx === -1) continue;
+      const myRank = myIdx + 1;
+      posTotal += myRank; posCount++;
+      if (myRank === 1) rodadasLider++;
+      if (myRank <= 3) rodadasTop3++;
+      if (myRank <= 6) rodadasTop6++;
+      if (myRank >= nUsers - 5) rodadasBot6++;
+      if (myRank === nUsers) rodadasLanterna++;
+    }
+    const posicaoMedia = posCount > 0 ? Number((posTotal / posCount).toFixed(1)) : null;
+
     // ── Melhor amigo ──
     const allUsers = await all('SELECT id,name,username,avatar_path FROM users WHERE is_admin=0 AND is_precadastro=0 AND id!=?', [targetId]);
     const myBetsByGame = {};
@@ -634,6 +760,7 @@ app.get('/api/stats/:userId', auth, async (req, res) => {
       bestFriends,
       worstFriends,
       betTypeTable,
+      rankingStats: { rodadasLider, rodadasTop3, rodadasTop6, rodadasBot6, rodadasLanterna, posicaoMedia, totalRodadas: rankingMatchNums.length },
     });
   } catch(e) { res.status(500).json({ error: e.message }); }
 });

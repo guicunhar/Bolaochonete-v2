@@ -17,12 +17,42 @@ function StatCard({ icon, label, value, sub, color = 'var(--lime)' }) {
   );
 }
 
-function Section({ title, children }) {
+function Section({ title, desc, children }) {
   return (
     <div className="stats-section">
       <h3 className="stats-section-title">{title}</h3>
+      {desc && <p className="stats-section-desc">{desc}</p>}
       <div className="stats-grid">{children}</div>
     </div>
+  );
+}
+
+function RankingTable({ rows, valueKey, valueLabel, emptyMsg }) {
+  if (!rows || rows.length === 0) return <p className="stats-empty">{emptyMsg || 'Sem dados ainda'}</p>;
+  return (
+    <div className="ranking-table">
+      {rows.map((u, i) => (
+        <div key={u.id} className="ranking-row">
+          <span className="ranking-pos" style={{ color: i === 0 ? 'var(--lime)' : i === 1 ? 'var(--yellow)' : i === 2 ? 'var(--orange, #f97316)' : 'var(--muted)' }}>
+            #{i + 1}
+          </span>
+          <Avatar src={u.avatar_path} name={u.name} size={28} />
+          <span className="ranking-name">{u.name.split(' ')[0]}</span>
+          <span className="ranking-value">{u[valueKey] ?? 0} {valueLabel}</span>
+        </div>
+      ))}
+    </div>
+  );
+}
+
+function PhaseBadge({ label, active, onClick }) {
+  return (
+    <button
+      className={`phase-badge${active ? ' active' : ''}`}
+      onClick={onClick}
+    >
+      {label}
+    </button>
   );
 }
 
@@ -34,11 +64,19 @@ export default function Estatisticas() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
 
+  const [rankingData, setRankingData] = useState(null);
+  const [rankingLoading, setRankingLoading] = useState(true);
+  const [lastNFilter, setLastNFilter] = useState(5);
+  const [faseFilter, setFaseFilter] = useState('fase1');
+
   useEffect(() => {
     api('/api/users/list', token).then(list => {
       setUsers(list);
       setSelectedId(user.id);
     });
+    api('/api/stats/ranking', token)
+      .then(d => setRankingData(d))
+      .finally(() => setRankingLoading(false));
   }, [token, user.id]);
 
   useEffect(() => {
@@ -53,6 +91,8 @@ export default function Estatisticas() {
   }, [selectedId, token]);
 
   const selectedUser = users.find(u => u.id === selectedId);
+
+  const faseLabels = { fase1: '1ª Fase (J1–24)', fase2: '2ª Fase (J25–48)', fase3: '3ª Fase (J49–72)', mataMata: 'Mata-Mata' };
 
   return (
     <div className="stats-page">
@@ -73,6 +113,71 @@ export default function Estatisticas() {
             <span>{u.name.split(' ')[0]}</span>
           </button>
         ))}
+      </div>
+
+      {/* ── ESTATÍSTICAS DE CLASSIFICAÇÃO COLETIVA ── */}
+      <div className="stats-section">
+        <h3 className="stats-section-title">🏆 Estatísticas de Classificação</h3>
+        <p className="stats-section-desc">Rankings baseados na posição de cada um após cada rodada do bolão</p>
+
+        {rankingLoading && <div style={{ display: 'flex', justifyContent: 'center', padding: 24 }}><div className="spinner" /></div>}
+
+        {rankingData && rankingData.totalRodadas === 0 && (
+          <p className="stats-empty">Nenhuma rodada encerrada ainda</p>
+        )}
+
+        {rankingData && rankingData.totalRodadas > 0 && (
+          <>
+            <div className="classification-tops">
+              <div className="classification-top-block">
+                <h4 className="classification-top-title">👑 Mais rodadas na liderança</h4>
+                <RankingTable rows={rankingData.top5Leaders} valueKey="rodadasLider" valueLabel="rodadas" />
+              </div>
+              <div className="classification-top-block">
+                <h4 className="classification-top-title">🥇 Mais rodadas no Top 3</h4>
+                <RankingTable rows={rankingData.top5Top3} valueKey="rodadasTop3" valueLabel="rodadas" />
+              </div>
+              <div className="classification-top-block">
+                <h4 className="classification-top-title">📉 Mais rodadas no Bot 3</h4>
+                <RankingTable rows={rankingData.top5Bot3} valueKey="rodadasBot3" valueLabel="rodadas" />
+              </div>
+              <div className="classification-top-block">
+                <h4 className="classification-top-title">🪣 Mais rodadas na lanterna</h4>
+                <RankingTable rows={rankingData.top5Lanterns} valueKey="rodadasLanterna" valueLabel="rodadas" />
+              </div>
+            </div>
+
+            {/* Últimas N rodadas */}
+            <div className="classification-filter-section">
+              <h4 className="classification-top-title">⚡ Classificação — Últimas rodadas</h4>
+              <div className="phase-badges">
+                {[5, 10, 15].map(n => (
+                  <PhaseBadge key={n} label={`Últimas ${n}`} active={lastNFilter === n} onClick={() => setLastNFilter(n)} />
+                ))}
+              </div>
+              {rankingData.rankingLast[lastNFilter] == null ? (
+                <p className="stats-empty">Ainda não há {lastNFilter} rodadas encerradas</p>
+              ) : (
+                <RankingTable rows={rankingData.rankingLast[lastNFilter]} valueKey="pts" valueLabel="pts" />
+              )}
+            </div>
+
+            {/* Por fase */}
+            <div className="classification-filter-section">
+              <h4 className="classification-top-title">🗓️ Classificação por Fase</h4>
+              <div className="phase-badges">
+                {Object.entries(faseLabels).map(([key, label]) => (
+                  <PhaseBadge key={key} label={label} active={faseFilter === key} onClick={() => setFaseFilter(key)} />
+                ))}
+              </div>
+              {rankingData.rankingFase[faseFilter] == null ? (
+                <p className="stats-empty">Nenhuma rodada dessa fase foi encerrada ainda</p>
+              ) : (
+                <RankingTable rows={rankingData.rankingFase[faseFilter]} valueKey="pts" valueLabel="pts" />
+              )}
+            </div>
+          </>
+        )}
       </div>
 
       {loading && (
@@ -133,6 +238,54 @@ export default function Estatisticas() {
               color="var(--blue)"
             />
           </Section>
+
+          {/* ── CLASSIFICAÇÃO INDIVIDUAL ── */}
+          {data.rankingStats && data.rankingStats.totalRodadas > 0 && (
+            <Section title="📍 Classificação" desc="Como você se saiu na tabela de classificação ao longo do bolão">
+              <StatCard
+                icon="👑"
+                label="Rodadas líder"
+                value={data.rankingStats.rodadasLider}
+                sub={`de ${data.rankingStats.totalRodadas} rodadas`}
+                color="var(--lime)"
+              />
+              <StatCard
+                icon="🥇"
+                label="Rodadas no Top 3"
+                value={data.rankingStats.rodadasTop3}
+                sub={`de ${data.rankingStats.totalRodadas} rodadas`}
+                color="var(--green)"
+              />
+              <StatCard
+                icon="📈"
+                label="Rodadas no Top 6"
+                value={data.rankingStats.rodadasTop6}
+                sub={`de ${data.rankingStats.totalRodadas} rodadas`}
+                color="var(--blue)"
+              />
+              <StatCard
+                icon="📉"
+                label="Rodadas no Bot 6"
+                value={data.rankingStats.rodadasBot6}
+                sub={`de ${data.rankingStats.totalRodadas} rodadas`}
+                color="var(--yellow)"
+              />
+              <StatCard
+                icon="🪣"
+                label="Rodadas na lanterna"
+                value={data.rankingStats.rodadasLanterna}
+                sub={`de ${data.rankingStats.totalRodadas} rodadas`}
+                color="var(--red)"
+              />
+              <StatCard
+                icon="📊"
+                label="Posição média"
+                value={data.rankingStats.posicaoMedia != null ? `${data.rankingStats.posicaoMedia}º` : '—'}
+                sub="Posição média ao longo do bolão"
+                color="var(--muted)"
+              />
+            </Section>
+          )}
 
           <Section title="😬 Quase Lá">
             <StatCard
