@@ -29,6 +29,7 @@ export default function MeusPalpites() {
   const [bonusSaving, setBonusSaving] = useState(false);
   const [bonusMsg, setBonusMsg] = useState(null);
   const [phaseIdx, setPhaseIdx] = useState(0);
+  const [subTab, setSubTab] = useState('abertos');
   const [loading, setLoading] = useState(true);
 
   const load = useCallback(async () => {
@@ -104,6 +105,10 @@ export default function MeusPalpites() {
 
   const phase = PHASE_KEYS[phaseIdx];
   const phaseGames = games.filter(g => g.phase === phase);
+  const todayStr = new Date().toLocaleDateString('en-CA', { timeZone: 'America/Sao_Paulo' });
+  const openGames = phaseGames.filter(g => g.match_date >= todayStr);
+  const closedGames = phaseGames.filter(g => g.match_date < todayStr);
+  const visibleGames = subTab === 'abertos' ? openGames : closedGames;
 
   if (loading) return <div className="spinner" />;
 
@@ -153,17 +158,36 @@ export default function MeusPalpites() {
 
       <div className="tabs">
         {PHASES.map((p, i) => (
-          <button key={p} className={`tab${phaseIdx===i?' active':''}`} onClick={() => setPhaseIdx(i)}>{p}</button>
+          <button key={p} className={`tab${phaseIdx===i?' active':''}`} onClick={() => { setPhaseIdx(i); setSubTab('abertos'); }}>{p}</button>
         ))}
       </div>
 
-      {phaseGames.length === 0 && (
+      <div style={{ display:'flex', gap:'8px', marginBottom:'14px' }}>
+        <button
+          className={`btn btn-sm${subTab==='abertos' ? ' btn-lime' : ''}`}
+          style={{ opacity: subTab==='abertos' ? 1 : 0.55 }}
+          onClick={() => setSubTab('abertos')}
+        >
+          Em Aberto{openGames.length > 0 ? ` (${openGames.length})` : ''}
+        </button>
+        <button
+          className={`btn btn-sm${subTab==='encerrados' ? ' btn-lime' : ''}`}
+          style={{ opacity: subTab==='encerrados' ? 1 : 0.55 }}
+          onClick={() => setSubTab('encerrados')}
+        >
+          Encerrados{closedGames.length > 0 ? ` (${closedGames.length})` : ''}
+        </button>
+      </div>
+
+      {visibleGames.length === 0 && (
         <div className="card" style={{ textAlign:'center', padding:'40px' }}>
-          <p style={{ color:'var(--muted)' }}>Nenhum jogo nesta fase ainda.</p>
+          <p style={{ color:'var(--muted)' }}>
+            {subTab === 'abertos' ? 'Nenhum jogo aberto nesta fase.' : 'Nenhum jogo encerrado nesta fase.'}
+          </p>
         </div>
       )}
 
-      {phaseGames.map(game => {
+      {visibleGames.map(game => {
         const locked = isLocked(game);
         const sv = saved[game.id];
         const bet = bets[game.id] || { home:'', away:'' };
