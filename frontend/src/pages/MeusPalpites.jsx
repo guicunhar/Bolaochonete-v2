@@ -2,8 +2,9 @@ import { useState, useEffect, useCallback } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import Flag from '../components/Flag';
 
-const PHASES = ['Grupos','Pré-Oitavas','Oitavas','Quartas','Semi','Terceiro Lugar','Final'];
-const PHASE_KEYS = ['Grupos','Pre-Oitavas','Oitavas','Quartas','Semi','Terceiro Lugar','Final'];
+const PHASES         = ['Grupos','Pré-Oitavas','Oitavas','Quartas','Semi','Terceiro Lugar','Final'];
+const PHASE_KEYS     = ['Grupos','Pre-Oitavas','Oitavas','Quartas','Semi','Terceiro Lugar','Final'];
+const KNOCKOUT_KEYS  = new Set(['Pre-Oitavas','Oitavas','Quartas','Semi','Terceiro Lugar','Final']);
 const BONUS_EDIT_DEADLINE = new Date('2026-06-11T15:59:00-03:00');
 
 function isLocked(game) {
@@ -23,6 +24,7 @@ export default function MeusPalpites() {
   const [bets, setBets] = useState({});
   const [saved, setSaved] = useState({});
   const [anon, setAnon] = useState({});
+  const [penaltyPicks, setPenaltyPicks] = useState({});
   const [saving, setSaving] = useState({});
   const [msgs, setMsgs] = useState({});
   const [bonus, setBonus] = useState({ champion:'', player:'', scorer:'' });
@@ -35,13 +37,14 @@ export default function MeusPalpites() {
   const load = useCallback(async () => {
     const [g, b] = await Promise.all([api('/api/games'), api('/api/bets/mine')]);
     setGames(g);
-    const bMap={}, sMap={}, aMap={};
+    const bMap={}, sMap={}, aMap={}, ppMap={};
     for (const bet of b) {
       bMap[bet.game_id] = { home: String(bet.home_score), away: String(bet.away_score) };
       sMap[bet.game_id] = { home: bet.home_score, away: bet.away_score, points: bet.points };
       aMap[bet.game_id] = !!bet.is_anonymous;
+      if (bet.penalty_pick) ppMap[bet.game_id] = bet.penalty_pick;
     }
-    setBets(bMap); setSaved(sMap); setAnon(aMap);
+    setBets(bMap); setSaved(sMap); setAnon(aMap); setPenaltyPicks(ppMap);
     setLoading(false);
   }, [api]);
 
@@ -89,9 +92,12 @@ export default function MeusPalpites() {
     }
     setSaving(s => ({ ...s, [game.id]: true }));
     try {
+      const isKnockout = KNOCKOUT_KEYS.has(game.phase);
+      const isDraw = Number(bet.home) === Number(bet.away);
+      const penalty_pick = isKnockout && isDraw ? (penaltyPicks[game.id] || null) : null;
       await api('/api/bets', { method:'POST', body: JSON.stringify({
         game_id: game.id, home_score: Number(bet.home), away_score: Number(bet.away),
-        is_anonymous: anon[game.id] || false
+        is_anonymous: anon[game.id] || false, penalty_pick
       })});
       setSaved(s => ({ ...s, [game.id]: { home: Number(bet.home), away: Number(bet.away) } }));
       setMsgs(m => ({ ...m, [game.id]: { t:'success', text:'Salvo!' } }));
@@ -194,13 +200,12 @@ export default function MeusPalpites() {
         const msg = msgs[game.id];
         const hasResult = game.home_score !== null;
 
+        const isKnockout = KNOCKOUT_KEYS.has(game.phase);
         let badge = null;
         if (hasResult && sv) {
           const pts = sv.points;
-          if (pts===5) badge = <span className="badge badge-exact">+5 pts</span>;
-          else if (pts===3) badge = <span className="badge badge-p3">+3 pts</span>;
-          else if (pts===1) badge = <span className="badge badge-p1">+1 pt</span>;
-          else badge = <span className="badge badge-miss">0 pts</span>;
+          const cls = pts >= 5 ? 'badge-exact' : pts >= 3 ? 'badge-p3' : pts >= 1 ? 'badge-p1' : 'badge-miss';
+          badge = <span className={`badge ${cls}`}>{pts > 0 ? `+${pts}` : '0'} pts</span>;
         }
 
         return (
@@ -220,6 +225,13 @@ export default function MeusPalpites() {
                 {locked && !hasResult && <span style={{ color:'var(--red)', fontSize:'0.7rem', fontWeight:700 }}>ENCERRADO</span>}
               </div>
             </div>
+
+            {/* Aviso 120 min para mata-mata */}
+            {isKnockout && (
+              <div style={{ fontSize:'0.72rem', color:'var(--muted)', marginBottom:'4px', textAlign:'center' }}>
+                Palpite para os 120 minutos (inclui prorrogação)
+              </div>
+            )}
 
             <div className="match-body">
               <div className="team">
@@ -261,6 +273,43 @@ export default function MeusPalpites() {
                 </div>
               )}
             </div>
+
+            {/* Seleção de classificado nos pênaltis (mata-mata + empate) */}
+            {isKnockout && (() => {
+              const isDraw = bet.home !== '' && bet.away !== '' && bet.home === bet.away;
+              const svIsDraw = sv && sv.home === sv.away;
+              if (!isDraw && !(locked && svIsDraw)) return null;
+              const pp = penaltyPicks[game.id];
+              return (
+                <div style={{ marginTop:'10px', padding:'10px 12px', background:'var(--card2)', borderRadius:'var(--radius-sm)', border:'1px solid var(--border)' }}>
+                  <div style={{ fontSize:'0.75rem', color:'var(--muted)', marginBottom:'8px', fontWeight:600 }}>
+                    Quem se classifica nos pênaltis? <span style={{ color:'var(--lime)', fontWeight:400 }}>(+2 pts bônus se acertar)</span>
+                  </div>
+                  {locked ? (
+                    <div style={{ fontSize:'0.82rem', color:'var(--muted2)' }}>
+                      {pp === 'home' ? game.home_team : pp === 'away' ? game.away_team : '— não escolheu —'}
+                    </div>
+                  ) : (
+                    <div style={{ display:'flex', gap:'8px' }}>
+                      <button
+                        className={`btn btn-sm${pp === 'home' ? ' btn-lime' : ''}`}
+                        style={{ opacity: pp === 'home' ? 1 : 0.55 }}
+                        onClick={() => setPenaltyPicks(p => ({ ...p, [game.id]: pp === 'home' ? null : 'home' }))}
+                      >
+                        {game.home_team}
+                      </button>
+                      <button
+                        className={`btn btn-sm${pp === 'away' ? ' btn-lime' : ''}`}
+                        style={{ opacity: pp === 'away' ? 1 : 0.55 }}
+                        onClick={() => setPenaltyPicks(p => ({ ...p, [game.id]: pp === 'away' ? null : 'away' }))}
+                      >
+                        {game.away_team}
+                      </button>
+                    </div>
+                  )}
+                </div>
+              );
+            })()}
 
             {msg && (
               <div className={`alert alert-${msg.t}`} style={{ marginTop:'10px', marginBottom:0 }}>

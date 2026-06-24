@@ -2,8 +2,9 @@ import { useState, useEffect } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import Avatar from '../components/Avatar';
 
-const PHASES     = ['Grupos','Pré-Oitavas','Oitavas','Quartas','Semi','Terceiro Lugar','Final'];
-const PHASE_KEYS = ['Grupos','Pre-Oitavas','Oitavas','Quartas','Semi','Terceiro Lugar','Final'];
+const PHASES         = ['Grupos','Pré-Oitavas','Oitavas','Quartas','Semi','Terceiro Lugar','Final'];
+const PHASE_KEYS     = ['Grupos','Pre-Oitavas','Oitavas','Quartas','Semi','Terceiro Lugar','Final'];
+const KNOCKOUT_KEYS  = new Set(['Pre-Oitavas','Oitavas','Quartas','Semi','Terceiro Lugar','Final']);
 
 const TEAMS = [
   // Grupo A
@@ -56,7 +57,7 @@ export default function Admin() {
     const data = await api('/api/admin/games');
     setGames(data);
     const em = {};
-    for (const g of data) em[g.id] = { ...g, home_score: g.home_score ?? '', away_score: g.away_score ?? '' };
+    for (const g of data) em[g.id] = { ...g, home_score: g.home_score ?? '', away_score: g.away_score ?? '', penalty_winner: g.penalty_winner ?? '' };
     setEdits(em);
   };
 
@@ -223,6 +224,7 @@ export default function Admin() {
                   <th>Time Fora</th><th>Flag</th><th>Data</th><th>Hora</th>
                   <th style={{ background:'rgba(200,240,62,0.08)' }}>Gols Casa</th>
                   <th style={{ background:'rgba(200,240,62,0.08)' }}>Gols Fora</th>
+                  {KNOCKOUT_KEYS.has(phase) && <th style={{ background:'rgba(200,240,62,0.08)' }}>Classificado (pên.)</th>}
                   <th>Ações</th>
                 </tr>
               </thead>
@@ -246,6 +248,20 @@ export default function Admin() {
                       <td style={{ background:'rgba(200,240,62,0.04)' }}>
                         <input className="admin-input" type="number" min="0" style={{ width:52, textAlign:'center', fontWeight:700 }} value={e.away_score} onChange={ev => setEdit(game.id,'away_score',ev.target.value)} placeholder="-" />
                       </td>
+                      {KNOCKOUT_KEYS.has(phase) && (
+                        <td style={{ background:'rgba(200,240,62,0.04)' }}>
+                          <select
+                            className="admin-input"
+                            style={{ width:120, fontSize:'0.75rem' }}
+                            value={e.penalty_winner || ''}
+                            onChange={ev => setEdit(game.id,'penalty_winner',ev.target.value)}
+                          >
+                            <option value="">— sem pên. —</option>
+                            <option value="home">Casa</option>
+                            <option value="away">Fora</option>
+                          </select>
+                        </td>
+                      )}
                       <td>
                         <div style={{ display:'flex', gap:'4px', alignItems:'center' }}>
                           <button className="btn btn-lime btn-sm" onClick={() => saveGame(game.id)} disabled={saving[game.id]}>

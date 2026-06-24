@@ -6,7 +6,7 @@ const path = require('path');
 const fs = require('fs');
 const multer = require('multer');
 const { initializeDatabase, all, get, run } = require('./database');
-const { calculatePoints } = require('./scoring');
+const { calculatePoints, calculateKnockoutPoints, KNOCKOUT_PHASES } = require('./scoring');
 
 const app = express();
 const PORT = process.env.PORT || 3001;
@@ -135,18 +135,23 @@ app.get('/api/bets/mine', auth, async (req, res) => {
 
 app.post('/api/bets', auth, async (req, res) => {
   try {
-    const { game_id, home_score, away_score, is_anonymous } = req.body;
+    const { game_id, home_score, away_score, is_anonymous, penalty_pick } = req.body;
     const game = await get('SELECT * FROM games WHERE id = ?', [game_id]);
     if (!game) return res.status(404).json({ error: 'Jogo não encontrado' });
     const matchStart = new Date(`${game.match_date}T${game.match_time}:00-03:00`);
     if (new Date() >= matchStart) return res.status(400).json({ error: 'Prazo encerrado' });
+    // penalty_pick só é válido em fases mata-mata e quando o placar é empate
+    const isKnockout = KNOCKOUT_PHASES.has(game.phase);
+    const isDraw = Number(home_score) === Number(away_score);
+    const validPenaltyPick = isKnockout && isDraw && (penalty_pick === 'home' || penalty_pick === 'away') ? penalty_pick : null;
     await run(
-      `INSERT INTO bets (user_id,game_id,home_score,away_score,is_anonymous)
-       VALUES (?,?,?,?,?)
+      `INSERT INTO bets (user_id,game_id,home_score,away_score,is_anonymous,penalty_pick)
+       VALUES (?,?,?,?,?,?)
        ON CONFLICT(user_id,game_id) DO UPDATE SET
          home_score=excluded.home_score, away_score=excluded.away_score,
-         is_anonymous=excluded.is_anonymous, updated_at=CURRENT_TIMESTAMP`,
-      [req.user.id, game_id, home_score, away_score, is_anonymous ? 1 : 0]
+         is_anonymous=excluded.is_anonymous, penalty_pick=excluded.penalty_pick,
+         updated_at=CURRENT_TIMESTAMP`,
+      [req.user.id, game_id, home_score, away_score, is_anonymous ? 1 : 0, validPenaltyPick]
     );
     res.json({ ok: true });
   } catch(e) { res.status(500).json({ error: e.message }); }
@@ -199,15 +204,17 @@ app.get('/api/ranking', auth, async (req, res) => {
 
     const ranking = await Promise.all(users.map(async user => {
       const bets = await all(
-        `SELECT b.*, g.home_score as rh, g.away_score as ra, g.match_date, g.match_time FROM bets b JOIN games g ON b.game_id=g.id WHERE b.user_id=?`,
+        `SELECT b.*, g.home_score as rh, g.away_score as ra, g.match_date, g.match_time, g.phase, g.penalty_winner FROM bets b JOIN games g ON b.game_id=g.id WHERE b.user_id=?`,
         [user.id]
       );
       let pts = 0, exact = 0, p3 = 0, p1 = 0;
       for (const b of bets) {
         if (b.rh === null || b.ra === null) continue;
-        const p = calculatePoints(b.home_score, b.away_score, b.rh, b.ra);
+        const p = KNOCKOUT_PHASES.has(b.phase)
+          ? calculateKnockoutPoints(b.home_score, b.away_score, b.rh, b.ra, b.penalty_winner, b.penalty_pick)
+          : calculatePoints(b.home_score, b.away_score, b.rh, b.ra);
         pts += p;
-        if (p === 5) exact++; else if (p === 3) p3++; else if (p === 1) p1++;
+        if (p >= 5) exact++; else if (p >= 3) p3++; else if (p >= 1) p1++;
       }
 
       const userAwards = awardsByUser[user.id] || {};
@@ -230,7 +237,10 @@ app.get('/api/ranking', auth, async (req, res) => {
         .sort((a, b) => (a.match_date + a.match_time) > (b.match_date + b.match_time) ? 1 : -1);
       let streak = 0;
       for (let i = finished.length - 1; i >= 0; i--) {
-        const p = calculatePoints(finished[i].home_score, finished[i].away_score, finished[i].rh, finished[i].ra);
+        const f = finished[i];
+        const p = KNOCKOUT_PHASES.has(f.phase)
+          ? calculateKnockoutPoints(f.home_score, f.away_score, f.rh, f.ra, f.penalty_winner, f.penalty_pick)
+          : calculatePoints(f.home_score, f.away_score, f.rh, f.ra);
         if (p >= 3) streak++; else break;
       }
 
@@ -252,17 +262,22 @@ app.get('/api/admin/games', auth, adminOnly, async (req, res) => {
 
 app.put('/api/admin/games/:id', auth, adminOnly, async (req, res) => {
   try {
-    const { home_team,home_flag,away_team,away_flag,match_date,match_time,home_score,away_score,phase,group_name,match_number } = req.body;
+    const { home_team,home_flag,away_team,away_flag,match_date,match_time,home_score,away_score,phase,group_name,match_number,penalty_winner } = req.body;
     const hs = (home_score !== '' && home_score != null) ? Number(home_score) : null;
     const as_ = (away_score !== '' && away_score != null) ? Number(away_score) : null;
+    const pw = (penalty_winner === 'home' || penalty_winner === 'away') ? penalty_winner : null;
     await run(
-      `UPDATE games SET home_team=?,home_flag=?,away_team=?,away_flag=?,match_date=?,match_time=?,home_score=?,away_score=?,phase=?,group_name=?,match_number=? WHERE id=?`,
-      [home_team,home_flag,away_team,away_flag,match_date,match_time,hs,as_,phase,group_name||null,match_number||null,req.params.id]
+      `UPDATE games SET home_team=?,home_flag=?,away_team=?,away_flag=?,match_date=?,match_time=?,home_score=?,away_score=?,phase=?,group_name=?,match_number=?,penalty_winner=? WHERE id=?`,
+      [home_team,home_flag,away_team,away_flag,match_date,match_time,hs,as_,phase,group_name||null,match_number||null,pw,req.params.id]
     );
     if (hs !== null) {
       const bets = await all('SELECT * FROM bets WHERE game_id=?', [req.params.id]);
+      const isKnockout = KNOCKOUT_PHASES.has(phase);
       for (const bet of bets) {
-        await run('UPDATE bets SET points=? WHERE id=?', [calculatePoints(bet.home_score, bet.away_score, hs, as_), bet.id]);
+        const pts = isKnockout
+          ? calculateKnockoutPoints(bet.home_score, bet.away_score, hs, as_, pw, bet.penalty_pick)
+          : calculatePoints(bet.home_score, bet.away_score, hs, as_);
+        await run('UPDATE bets SET points=? WHERE id=?', [pts, bet.id]);
       }
     }
     res.json({ ok: true });

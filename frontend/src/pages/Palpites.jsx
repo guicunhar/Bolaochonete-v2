@@ -3,8 +3,9 @@ import { useAuth } from '../contexts/AuthContext';
 import Avatar from '../components/Avatar';
 import Flag from '../components/Flag';
 
-const PHASES     = ['Grupos','Pré-Oitavas','Oitavas','Quartas','Semi','Terceiro Lugar','Final'];
-const PHASE_KEYS = ['Grupos','Pre-Oitavas','Oitavas','Quartas','Semi','Terceiro Lugar','Final'];
+const PHASES        = ['Grupos','Pré-Oitavas','Oitavas','Quartas','Semi','Terceiro Lugar','Final'];
+const PHASE_KEYS    = ['Grupos','Pre-Oitavas','Oitavas','Quartas','Semi','Terceiro Lugar','Final'];
+const KNOCKOUT_KEYS = new Set(['Pre-Oitavas','Oitavas','Quartas','Semi','Terceiro Lugar','Final']);
 
 function fmtDate(d) {
   const [y,m,day] = d.split('-');
@@ -181,10 +182,9 @@ export default function Palpites() {
                         let badge = null;
 
                         if (game.home_score !== null) {
-                          if (bet.points===5) badge = <span className="badge badge-exact">+5</span>;
-                          else if (bet.points===3) badge = <span className="badge badge-p3">+3</span>;
-                          else if (bet.points===1) badge = <span className="badge badge-p1">+1</span>;
-                          else badge = <span className="badge badge-miss">0</span>;
+                          const pts = bet.points;
+                          const cls = pts >= 5 ? 'badge-exact' : pts >= 3 ? 'badge-p3' : pts >= 1 ? 'badge-p1' : 'badge-miss';
+                          badge = <span className={`badge ${cls}`}>{pts > 0 ? `+${pts}` : '0'}</span>;
                         }
 
                         return (
@@ -209,14 +209,21 @@ export default function Palpites() {
 
                             {/* Score */}
                             <div style={{ display:'flex', alignItems:'center', gap:'6px' }}>
-                              <span style={{
-                                fontFamily:'Outfit',
-                                fontSize:'1rem',
-                                fontWeight:800,
-                                color:'var(--lime)'
-                              }}>
-                                {bet.home_score} x {bet.away_score}
-                              </span>
+                              <div style={{ display:'flex', flexDirection:'column', alignItems:'flex-end', gap:'2px' }}>
+                                <span style={{
+                                  fontFamily:'Outfit',
+                                  fontSize:'1rem',
+                                  fontWeight:800,
+                                  color:'var(--lime)'
+                                }}>
+                                  {bet.home_score} x {bet.away_score}
+                                </span>
+                                {KNOCKOUT_KEYS.has(game.phase) && bet.penalty_pick && (
+                                  <span style={{ fontSize:'0.65rem', color:'var(--muted)' }}>
+                                    {bet.penalty_pick === 'home' ? game.home_team : game.away_team} nos pên.
+                                  </span>
+                                )}
+                              </div>
 
                               {badge}
                             </div>

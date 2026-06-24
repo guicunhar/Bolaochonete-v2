@@ -14,12 +14,29 @@ export default function Regulamento() {
       <h1 className="section-title" style={{ marginBottom:'24px' }}>Regulamento</h1>
 
       <div className="card" style={{ marginBottom:'14px' }}>
-        <h2 style={{ fontSize:'1rem', marginBottom:'10px' }}>Pontuação por jogo</h2>
+        <h2 style={{ fontSize:'1rem', marginBottom:'10px' }}>Pontuação por jogo (fase de grupos)</h2>
         <div style={{ display:'flex', flexDirection:'column', gap:'8px' }}>
           <Block pts="+5 pts" cls="badge-exact" label="Acerto Total" desc="Acertou o placar exato. Ex: palpitou 2x1 e deu 2x1." />
           <Block pts="+3 pts" cls="badge-p3" label="Acerto Parcial" desc="Acertou o vencedor E os gols de um dos times. Ex: palpitou 2x0 e deu 2x1 — acertou o vencedor e os gols do mandante (2)." />
           <Block pts="+1 pt" cls="badge-p1" label="Acerto Básico" desc="Acertou apenas quem ganhou (ou que seria empate), mas errou os gols." />
           <Block pts="0 pts" cls="badge-miss" label="Errou" desc="Acertou o vencedor errado." />
+        </div>
+      </div>
+
+      <div className="card" style={{ marginBottom:'14px' }}>
+        <h2 style={{ fontSize:'1rem', marginBottom:'10px' }}>Pontuação mata-mata (Pré-Oitavas em diante)</h2>
+        <p style={{ color:'var(--muted)', fontSize:'0.82rem', marginBottom:'12px', lineHeight:1.6 }}>
+          Os palpites valem para os <strong style={{ color:'var(--fg)' }}>120 minutos</strong> (tempo normal + prorrogação). A pontuação base é a mesma dos grupos. Além disso, acertar quem se classifica vale <strong style={{ color:'var(--lime)' }}>+2 pts bônus</strong>.
+        </p>
+        <div style={{ display:'flex', flexDirection:'column', gap:'8px' }}>
+          <Block pts="+2 bônus" cls="badge-p1" label="Acertou o classificado" desc="Palpitou no vencedor dos 120 min, ou palpitou empate e escolheu corretamente quem passa nos pênaltis. Ex: palpitou 2x0 França, mas o jogo foi 1x1 e a França passou nos pênaltis → 0 pts base + 2 bônus = 2 pts." />
+          <Block pts="+7 pts" cls="badge-exact" label="Placar exato + classificado" desc="Acertou o placar exato (5 pts) e quem se classifica (+2). Máximo possível num jogo mata-mata." />
+          <Block pts="+5 pts" cls="badge-exact" label="Acerto parcial + classificado" desc="Ex: palpitou 3x1, jogo foi 3x0 → 3 pts base (acertou gols do mandante) + 2 bônus = 5 pts." />
+        </div>
+        <div style={{ marginTop:'12px', padding:'10px 12px', background:'rgba(200,240,62,0.04)', borderRadius:'var(--radius-sm)', border:'1px solid rgba(200,240,62,0.1)' }}>
+          <p style={{ fontSize:'0.78rem', color:'var(--muted)', margin:0, lineHeight:1.7 }}>
+            <strong style={{ color:'var(--fg)' }}>Como funciona o palpite de pênaltis:</strong> se você palpitar empate (ex: 1x1), aparece uma opção para escolher quem avança nos pênaltis. Se palpitar vitória de um dos times, esse time é automaticamente seu "classificado" para fins do bônus.
+          </p>
         </div>
       </div>
 

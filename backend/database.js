@@ -103,8 +103,10 @@ async function initializeDatabase() {
     )`, args: [] },
   ], 'write');
 
-  // Migration: adiciona coluna se não existir (ignora erro se já existe)
+  // Migration: adiciona colunas se não existirem (ignora erro se já existe)
   try { await exec(`ALTER TABLE users ADD COLUMN bonus_extra_points INTEGER DEFAULT 0`); } catch(e) {}
+  try { await exec(`ALTER TABLE games ADD COLUMN penalty_winner TEXT`); } catch(e) {}
+  try { await exec(`ALTER TABLE bets ADD COLUMN penalty_pick TEXT`); } catch(e) {}
 
   // Criar admin se não existir
   const admin = await get('SELECT id FROM users WHERE username = ?', ['admin']);
