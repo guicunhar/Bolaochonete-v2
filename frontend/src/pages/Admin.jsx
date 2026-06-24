@@ -182,8 +182,8 @@ export default function Admin() {
 
   // Champion auto-award status per user
   const getChampionStatus = (user) => {
-    if (hasAward(user.id, 'champion')) return { pts: 50, label: '🥇 Campeã (+50)' };
-    if (hasAward(user.id, 'champion_vice')) return { pts: 25, label: '🥈 Vice (+25)' };
+    if (hasAward(user.id, 'champion')) return { pts: 20, label: '🥇 Campeã (+20)' };
+    if (hasAward(user.id, 'champion_vice')) return { pts: 10, label: '🥈 Vice (+10)' };
     return null;
   };
 
@@ -366,7 +366,7 @@ export default function Admin() {
           <div className="card">
             <h2 style={{ fontSize:'1rem', fontWeight:700, marginBottom:'4px' }}>🏆 Seleção Campeã</h2>
             <p style={{ fontSize:'0.75rem', color:'var(--muted)', marginBottom:'14px' }}>
-              Defina a campeã e o sistema distribui +50 pts para quem acertou automaticamente. Você também pode definir a vice (+25 pts).
+              Defina a campeã e o sistema distribui +20 pts para quem acertou automaticamente. Você também pode definir a vice (+10 pts).
             </p>
 
             <div style={{ display:'flex', gap:'10px', flexWrap:'wrap', alignItems:'flex-end', marginBottom:'10px' }}>
@@ -384,7 +384,7 @@ export default function Admin() {
 
             <div style={{ display:'flex', gap:'10px', flexWrap:'wrap', alignItems:'flex-end', marginBottom:'10px' }}>
               <div style={{ flex:1, minWidth:160 }}>
-                <label className="label">Seleção Vice-campeã (+25 pts)</label>
+                <label className="label">Seleção Vice-campeã (+10 pts)</label>
                 <select className="input" value={bonusResults.vice || ''} onChange={e => setBonusResults(b => ({ ...b, vice: e.target.value }))}>
                   <option value="">Selecione...</option>
                   {TEAMS.map(t => <option key={t} value={t}>{t}</option>)}
@@ -440,11 +440,11 @@ export default function Admin() {
           {/* ── Melhor Jogador ── */}
           <BonusPickPanel
             title="⭐ Melhor Jogador"
-            subtitle="Marque quem acertou o Melhor Jogador da Copa (Bola de Ouro da FIFA). +25 pts exato, sem opção de parcial."
+            subtitle="Marque quem acertou o Melhor Jogador da Copa (Bola de Ouro da FIFA). +20 pts."
             users={activeUsers}
             pickField="best_player_pick"
             awardType="best_player"
-            awardPoints={25}
+            awardPoints={20}
             hasAward={hasAward}
             toggleAward={toggleAward}
             savingBonus={savingBonus}
@@ -453,14 +453,11 @@ export default function Admin() {
           {/* ── Artilheiro ── */}
           <BonusPickPanel
             title="👟 Artilheiro"
-            subtitle="Marque quem acertou o Artilheiro da Copa. +20 pts (acerto exato) ou +10 pts (desempate)."
+            subtitle="Marque quem acertou o Artilheiro da Copa. +20 pts."
             users={activeUsers}
             pickField="top_scorer_pick"
             awardType="top_scorer"
             awardPoints={20}
-            partialAwardType="top_scorer_partial"
-            partialAwardPoints={10}
-            partialLabel="+10 desempate"
             hasAward={hasAward}
             toggleAward={toggleAward}
             savingBonus={savingBonus}

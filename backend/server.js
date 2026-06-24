@@ -224,8 +224,8 @@ app.get('/api/ranking', auth, async (req, res) => {
       // Auto-calcular campeã se não foi manualmente premiado
       if (bonusResults?.champion && user.champion_pick && !awardDetails['champion'] && !awardDetails['champion_vice']) {
         if (normalizeStr(user.champion_pick) === normalizeStr(bonusResults.champion)) {
-          bonusPts += 50;
-          awardDetails['champion'] = 50;
+          bonusPts += 20;
+          awardDetails['champion'] = 20;
         }
       }
 
@@ -373,7 +373,7 @@ app.put('/api/admin/bonus-results/champion', auth, adminOnly, async (req, res) =
       const users = await all(`SELECT id, champion_pick FROM users WHERE is_admin=0 AND is_precadastro=0 AND champion_pick IS NOT NULL`);
       for (const u of users) {
         if (normalizeStr(u.champion_pick) === normalizeStr(champion)) {
-          await run(`INSERT OR REPLACE INTO bonus_awards (user_id, award_type, points) VALUES (?, 'champion', 50)`, [u.id]);
+          await run(`INSERT OR REPLACE INTO bonus_awards (user_id, award_type, points) VALUES (?, 'champion', 20)`, [u.id]);
         }
       }
     }
@@ -397,7 +397,7 @@ app.put('/api/admin/bonus-results/vice', auth, adminOnly, async (req, res) => {
         if (normalizeStr(u.champion_pick) === normalizeStr(vice)) {
           const alreadyChamp = await get(`SELECT id FROM bonus_awards WHERE user_id=? AND award_type='champion'`, [u.id]);
           if (!alreadyChamp) {
-            await run(`INSERT OR REPLACE INTO bonus_awards (user_id, award_type, points) VALUES (?, 'champion_vice', 25)`, [u.id]);
+            await run(`INSERT OR REPLACE INTO bonus_awards (user_id, award_type, points) VALUES (?, 'champion_vice', 10)`, [u.id]);
           }
         }
       }

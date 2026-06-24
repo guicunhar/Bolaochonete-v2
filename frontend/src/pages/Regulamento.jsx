@@ -29,9 +29,10 @@ export default function Regulamento() {
           Os palpites valem para os <strong style={{ color:'var(--fg)' }}>120 minutos</strong> (tempo normal + prorrogação). A pontuação base é a mesma dos grupos. Além disso, acertar quem se classifica vale <strong style={{ color:'var(--lime)' }}>+2 pts bônus</strong>.
         </p>
         <div style={{ display:'flex', flexDirection:'column', gap:'8px' }}>
-          <Block pts="+2 bônus" cls="badge-p1" label="Acertou o classificado" desc="Palpitou no vencedor dos 120 min, ou palpitou empate e escolheu corretamente quem passa nos pênaltis. Ex: palpitou 2x0 França, mas o jogo foi 1x1 e a França passou nos pênaltis → 0 pts base + 2 bônus = 2 pts." />
           <Block pts="+7 pts" cls="badge-exact" label="Placar exato + classificado" desc="Acertou o placar exato (5 pts) e quem se classifica (+2). Máximo possível num jogo mata-mata." />
-          <Block pts="+5 pts" cls="badge-exact" label="Acerto parcial + classificado" desc="Ex: palpitou 3x1, jogo foi 3x0 → 3 pts base (acertou gols do mandante) + 2 bônus = 5 pts." />
+          <Block pts="+5 pts" cls="badge-exact" label="Acerto parcial + classificado" desc="Acertou o vencedor E os gols de um dos times (+3) e quem se classifica (+2). Ex: palpitou 3x1, jogo foi 3x0 → 3 + 2 = 5 pts." />
+          <Block pts="+3 pts" cls="badge-p3" label="Acerto básico + classificado" desc="Acertou apenas quem ganhou/empate (+1) e quem se classifica (+2). Ex: palpitou 1x0, jogo foi 3x1 → 1 + 2 = 3 pts." />
+          <Block pts="+2 pts" cls="badge-p1" label="Acertou só o classificado" desc="Errou o resultado dos 120 min, mas acertou quem avança. Ex: palpitou 2x0 França, jogo foi 1x1 e França passou nos pênaltis → 0 + 2 = 2 pts." />
         </div>
         <div style={{ marginTop:'12px', padding:'10px 12px', background:'rgba(200,240,62,0.04)', borderRadius:'var(--radius-sm)', border:'1px solid rgba(200,240,62,0.1)' }}>
           <p style={{ fontSize:'0.78rem', color:'var(--muted)', margin:0, lineHeight:1.7 }}>
@@ -43,11 +44,10 @@ export default function Regulamento() {
       <div className="card" style={{ marginBottom:'14px' }}>
         <h2 style={{ fontSize:'1rem', marginBottom:'10px' }}>Palpites Bônus (feitos na ativação)</h2>
         <div style={{ display:'flex', flexDirection:'column', gap:'8px' }}>
-          <Block pts="+50" cls="badge-exact" label="Seleção Campeã" desc="Acertou o campeão do mundo." />
-          <Block pts="+25" cls="badge-p3" label="Vice-campeã" desc="Palpitou no campeão, mas a seleção foi até a final e perdeu." />
-          <Block pts="+25" cls="badge-exact" label="Melhor Jogador" desc="Acertou o Bola de Ouro da Copa (escolha da FIFA)." />
+          <Block pts="+20" cls="badge-exact" label="Seleção Campeã" desc="Acertou o campeão do mundo." />
+          <Block pts="+10" cls="badge-p3" label="Vice-campeã" desc="Palpitou no campeão, mas a seleção foi até a final e perdeu." />
+          <Block pts="+20" cls="badge-exact" label="Melhor Jogador" desc="Acertou o Bola de Ouro da Copa (escolha da FIFA)." />
           <Block pts="+20" cls="badge-exact" label="Artilheiro" desc="Acertou o artilheiro exato do torneio." />
-          <Block pts="+10" cls="badge-p3" label="Artilheiro (desempate)" desc="O jogador marcou mais gols mas perdeu no critério de desempate da FIFA." />
         </div>
       </div>
 
