@@ -247,7 +247,11 @@ app.get('/api/ranking', auth, async (req, res) => {
       return { ...user, total_points: pts, exact, partial3: p3, partial1: p1, bonus_points: bonusPts, award_details: awardDetails, streak };
     }));
 
-    ranking.sort((a, b) => b.total_points - a.total_points);
+    ranking.sort((a, b) =>
+      b.total_points  - a.total_points  ||
+      b.exact         - a.exact         ||
+      b.bonus_points  - a.bonus_points
+    );
     res.json(ranking);
   } catch(e) { res.status(500).json({ error: e.message }); }
 });
